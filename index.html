@@ -151,12 +151,15 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const tempEl = document.getElementById("tempValue");
+    const doEl = document.getElementById("doValue");
+
+    const chartCtx = document.getElementById("sensorChart").getContext("2d");
     const labels = [];
     const tempData = [];
     const doData = [];
 
-    const chart = new Chart(ctx, {
+    const chart = new Chart(chartCtx, {
       type: 'line',
       data: {
         labels: labels,
@@ -164,88 +167,93 @@
           {
             label: 'Temperature (°C)',
             data: tempData,
-            borderColor: 'rgba(0, 123, 255, 1)',
-            backgroundColor: 'rgba(0, 123, 255, 0.2)',
-            yAxisID: 'yTemp'
+            borderColor: '#ff6384',
+            fill: false,
+            tension: 0.3
           },
           {
-            label: 'DO (mg/L)',
+            label: 'Dissolved Oxygen (mg/L)',
             data: doData,
-            borderColor: 'rgba(255, 99, 132, 1)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            yAxisID: 'yDO'
+            borderColor: '#36a2eb',
+            fill: false,
+            tension: 0.3
           }
         ]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         scales: {
-          yTemp: {
-            type: 'linear',
-            position: 'right',
-            min: 0,
-            max: 100
+          x: {
+            grid: {
+              color: 'rgba(180, 180, 180, 0.2)',
+              drawOnChartArea: true
+            }
           },
-          yDO: {
-            type: 'linear',
-            position: 'left',
-            min: 0,
-            max: 12000,
-            ticks: {
-              stepSize: 500
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(180, 180, 180, 0.2)',
+              drawTicks: true,
+              drawBorder: true
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: getComputedStyle(document.body).getPropertyValue('--text')
             }
           }
         }
       }
     });
 
-    db.ref("sensor/temp").on("value", snapshot => {
+    db.ref("sensor").on("value", (snapshot) => {
       const val = snapshot.val();
-      document.getElementById("tempValue").textContent = `${val} °C`;
-      addData(chart, val, null);
-    });
+      if (!val) return;
+      const temperature = val.temperature;
+      const doValue = val.do;
 
-    db.ref("sensor/do").on("value", snapshot => {
-      const val = snapshot.val();
-      document.getElementById("doValue").textContent = `${val} mg/L`;
-      addData(chart, null, val);
-    });
+      const now = new Date();
+      const timeLabel = now.toLocaleTimeString();
 
-    function addData(chart, temp, doVal) {
-      const now = new Date().toLocaleTimeString();
-      labels.push(now);
-      if (temp !== null) tempData.push(temp);
-      else tempData.push(tempData[tempData.length - 1] || 0);
-      if (doVal !== null) doData.push(doVal);
-      else doData.push(doData[doData.length - 1] || 0);
-      if (labels.length > 20) {
-        labels.shift(); tempData.shift(); doData.shift();
+      tempEl.textContent = `${temperature} °C`;
+      doEl.textContent = `${doValue} mg/L`;
+
+      if (labels.length > 30) {
+        labels.shift();
+        tempData.shift();
+        doData.shift();
       }
+
+      labels.push(timeLabel);
+      tempData.push(temperature);
+      doData.push(doValue);
+
       chart.update();
-    }
+    });
 
     function sendCommand(cmd) {
-      db.ref("command").set(cmd);
       const status = document.getElementById("statusMsg");
       status.textContent = "Working...";
-      setTimeout(() => status.textContent = "Completed ✅", 3000);
+      db.ref("command").set(cmd).then(() => {
+        setTimeout(() => {
+          status.textContent = "Completed ✅";
+        }, 2000);
+      });
     }
 
-    // Theme toggle
     const themeToggle = document.getElementById("themeToggle");
-    const prefersDark = localStorage.getItem("theme") === "dark";
-
-    if (prefersDark) {
-      document.body.classList.add("dark");
-      themeToggle.textContent = "☀️ Light Mode";
-    }
-
-    themeToggle.onclick = () => {
+    themeToggle.addEventListener("click", () => {
       document.body.classList.toggle("dark");
-      const isDark = document.body.classList.contains("dark");
-      themeToggle.textContent = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
-      localStorage.setItem("theme", isDark ? "dark" : "light");
-    };
+      themeToggle.textContent = document.body.classList.contains("dark")
+        ? "☀️ Light Mode"
+        : "🌙 Dark Mode";
+
+      chart.options.plugins.legend.labels.color = getComputedStyle(document.body).getPropertyValue('--text');
+      chart.update();
+    });
   </script>
 </body>
 </html>
