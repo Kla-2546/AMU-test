@@ -1,144 +1,166 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Home Voice Control</title>
-<link rel="stylesheet" href="mystyle.css">
+  <meta charset="UTF-8">
+  <title>Sensor Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      color: #222;
+    }
+
+    .value-cards {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      margin-bottom: 50px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .label {
+      font-size: 1.2em;
+      color: #666;
+    }
+
+    .value {
+      font-size: 2.5em;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    canvas {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+  </style>
 </head>
 <body>
-  <center>
-      <a href="https://medium.com/@maccismyname">
-        <img src="logo.png"/>
-      </a>
-  </center>
-  <div class="container">
-    <br>
-    <center>
-        <h2 id="info_microphone">สวัสดี, วันนี้ต้องการให้ช่วยอะไร?</h2>
-    </center>
-    <br>
-    <center>
-      <button id="start_button" onclick="startButton(event)">
-        <img id="start_img" src="mic.gif" alt="Start"></button>
-    </center>
-    <br>
-    <div id="results">
-      <p>คำสั่ง : </p>
-      <p id="final_span" class="final"></p>
-      <br>
-      <p>ผลลัพธ์ : </p>
-      <p id="final_result"></p>
+
+  <h1>🌐 Real-Time Sensor Dashboard</h1>
+
+  <div class="value-cards">
+    <div class="card">
+      <div class="label">🌡️ Temperature</div>
+      <div class="value" id="tempValue">-- °C</div>
     </div>
-    <p>ลองพูดคำสั่งต่อไปนี้สิ : สวัสดี, สบายดีไหม, เปิดไฟหน้าบ้าน, ปิดไฟทั้งหมด </p>
+    <div class="card">
+      <div class="label">💧 Dissolved Oxygen (DO)</div>
+      <div class="value" id="doValue">-- mg/L</div>
+    </div>
   </div>
-</body>
 
-<script>
+  <canvas id="sensorChart" width="800" height="400"></canvas>
 
-  //Welcome sound !!
-  var msg = new SpeechSynthesisUtterance('สวัสดี, วันนี้ต้องการให้ช่วยอะไร?');
-  msg.lang = 'th-TH';
-  window.speechSynthesis.speak(msg);
+  <script>
+    const firebaseConfig = {
+      databaseURL: "https://amu-web-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-  var final_transcript = '';
-  var recognizing = false;
-  var ignore_onend;
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const labels = [];
+    const tempData = [];
+    const doData = [];
 
-  if (!('webkitSpeechRecognition' in window)) {
-    //if don't have a webkitSpeechRecognition
-  } else {
-      var recognition = new webkitSpeechRecognition();
-      recognition.lang = "th-TH";
-
-      recognition.onstart = function() {
-        recognizing = true;
-        start_img.src = 'mic-animate.gif';
-      };
-
-      recognition.onresult = function(event) {
-        console.log(event)
-        var interim_transcript = '';
-        for (var i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            final_transcript += event.results[i][0].transcript;
-          } else {
-            interim_transcript += event.results[i][0].transcript;
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Temperature (°C)',
+            data: tempData,
+            borderColor: 'rgba(0, 123, 255, 1)',
+            backgroundColor: 'rgba(0, 123, 255, 0.2)',
+            yAxisID: 'yTemp'
+          },
+          {
+            label: 'DO (mg/L)',
+            data: doData,
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            yAxisID: 'yDO'
+          }
+        ]
+      },
+      options: {
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 10 },
+            title: { display: true, text: 'Time' }
+          },
+          yTemp: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Temperature (°C)' },
+            min: 0,
+            max: 50
+          },
+          yDO: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'DO (mg/L)' },
+            min: 0,
+            max: 15000,
+            grid: { drawOnChartArea: false }
           }
         }
-        final_span.innerHTML = final_transcript;
-        speak(final_transcript);
       }
-  }
+    });
 
-  function startButton(event) {
-    if (recognizing) {
-      recognition.stop();
-      return;
-    }
-    final_transcript = '';
-    recognition.start();
-    ignore_onend = false;
-    start_img.src = 'mic-slash.gif';
-  }
+    function updateChart(time, temp, doVal) {
+      labels.push(time);
+      tempData.push(temp);
+      doData.push(doVal);
 
-  recognition.onend = function() {
-    recognizing = false;
-    if (ignore_onend) {
-      return;
-    }
-    start_img.src = 'mic.gif';
-  };
+      if (labels.length > 20) {
+        labels.shift();
+        tempData.shift();
+        doData.shift();
+      }
 
-  // ignore //
-
-  // var first_char = /\S/;
-  // function capitalize(s) {
-  //   return s.replace(first_char, function(m) { return m.toUpperCase(); });
-  // }
-  //
-
-  // var two_line = /\n\n/g;
-  // var one_line = /\n/g;
-  // function linebreak(s) {
-  //   return s.replace(two_line, '<p></p>').replace(one_line, '<br>');
-  // }
-
-  // ignore //
-
-  function speak(text) {
-
-    //Hardcode becuz it's a tutorial. Got it?
-    var msg_light = 'เปิดไฟหน้าบ้าน';
-    var turnoffAllLight = 'ปิดไฟทั้งหมด'
-    var whatsup = 'สบายดีไหม';
-    var sawasdee = 'สวัสดี';
-
-    //Text to speech
-    var speechSynthesis = new SpeechSynthesisUtterance();
-    speechSynthesis.voiceURI = 'native';
-    speechSynthesis.volume = 1; // 0 to 1
-    speechSynthesis.rate = 1; // 0.1 to 10
-    speechSynthesis.pitch = 2; //0 to 2
-    speechSynthesis.lang = 'th-TH';
-
-    var msg = '';
-    //Do whatever you want.
-    if(text.search(msg_light) != -1 || text.search(turnoffAllLight) != -1 ) {
-      msg = "ทำการ" + text + "เรียบร้อยแล้วค่ะ";
-      speechSynthesis.text = msg;
-    } else if(text.search(whatsup) != -1) {
-      msg = 'สบายดีค่ะ, แล้วคุณหล่ะคะ ';
-      speechSynthesis.text = msg;
-    } else if(text.search(sawasdee) != -1) {
-      msg = 'สวัสดีค่ะ หนีฮ่าว สบายดี ฮัลโหล';
-      speechSynthesis.text = msg;
-    } else {
-      msg = 'คำสั่งดังกล่าวยังไม่มีในฐานข้อมูลค่ะ';
-      speechSynthesis.text = msg;
+      chart.update();
     }
 
-    window.speechSynthesis.speak(speechSynthesis);
-    final_result.innerHTML = msg;
-  }
-</script>
+    db.ref("sensor").on("value", (snapshot) => {
+      const data = snapshot.val();
+      if (data && data.temp && data.do) {
+        const temp = parseFloat(data.temp);
+        const doVal = parseFloat(data.do);
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ":" +
+                        now.getMinutes().toString().padStart(2, '0') + ":" +
+                        now.getSeconds().toString().padStart(2, '0');
+
+        document.getElementById("tempValue").textContent = temp.toFixed(2) + " °C";
+        document.getElementById("doValue").textContent = doVal.toFixed(0) + " mg/L";
+
+        updateChart(timeStr, temp, doVal);
+      }
+    });
+  </script>
+
+</body>
 </html>
