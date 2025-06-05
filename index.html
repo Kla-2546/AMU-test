@@ -1,164 +1,291 @@
-<!-- ... ก่อนหน้าเหมือนเดิม ... -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sensor Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card-bg: #fff;
+      --text: #222;
+      --subtext: #666;
+      --shadow: rgba(0, 0, 0, 0.1);
+      --btn-bg: #007bff;
+      --btn-text: white;
+    }
 
-<h1>🌐 Real-Time Sensor Dashboard & Control</h1>
-<button id="themeToggle">🌙 Dark Mode</button>
+    body.dark {
+      --bg: #1e1e1e;
+      --card-bg: #2b2b2b;
+      --text: #eaeaea;
+      --subtext: #aaa;
+      --shadow: rgba(255, 255, 255, 0.05);
+      --btn-bg: #0d6efd;
+      --btn-text: #fff;
+    }
 
-<div class="value-cards">
-  <div class="card">
-    <div class="label">🌡️ Temperature</div>
-    <div class="value" id="tempValue">-- °C</div>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    .value-cards {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 20px 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px var(--shadow);
+      min-width: 150px;
+    }
+
+    .label {
+      font-size: 1.2em;
+      color: var(--subtext);
+    }
+
+    .value {
+      font-size: 2.5em;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    canvas {
+      background: var(--card-bg);
+      border-radius: 10px;
+      box-shadow: 0 2px 10px var(--shadow);
+      padding: 10px;
+      margin: 20px auto;
+      display: block;
+      max-width: 100%;
+    }
+
+    .buttons {
+      margin-bottom: 20px;
+    }
+
+    button {
+      font-size: 1em;
+      padding: 12px 25px;
+      margin: 8px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+      box-shadow: 0 4px 6px rgba(0, 123, 255, 0.4);
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #statusMsg {
+      font-size: 1.1em;
+      margin-top: 15px;
+      min-height: 1.5em;
+      font-weight: 600;
+    }
+
+    #themeToggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: 2px solid var(--btn-bg);
+      color: var(--btn-bg);
+      border-radius: 25px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌐 Real-Time Sensor Dashboard</h1>
+
+  <button id="themeToggle">🌙 Dark Mode</button>
+
+  <div class="value-cards">
+    <div class="card">
+      <div class="label">🌡️ Temperature</div>
+      <div class="value" id="tempValue">-- °C</div>
+    </div>
+    <div class="card">
+      <div class="label">💧 DO (mg/L)</div>
+      <div class="value" id="doValue">-- mg/L</div>
+    </div>
   </div>
-  <div class="card">
-    <div class="label">💧 Dissolved Oxygen (DO)</div>
-    <div class="value" id="doValue">-- mg/L</div>
+
+  <!-- ✅ กราฟแยก -->
+  <canvas id="tempChart" width="800" height="400"></canvas>
+  <canvas id="doChart" width="800" height="400"></canvas>
+
+  <div class="buttons">
+    <button onclick="sendCommand('all')">Run All</button>
+    <button onclick="sendCommand('wash')">Wash</button>
+    <button onclick="sendCommand('wipe')">Wipe</button>
   </div>
-</div>
 
-<!-- ✅ เพิ่ม canvas 2 อัน -->
-<canvas id="tempChart" width="800" height="400"></canvas>
-<canvas id="doChart" width="800" height="400"></canvas>
+  <div id="statusMsg"></div>
 
-<div class="buttons">
-  <button onclick="sendCommand('all')">Run All</button>
-  <button onclick="sendCommand('wash')">Wash</button>
-  <button onclick="sendCommand('wipe')">Wipe</button>
-</div>
+  <script>
+    // ✅ Firebase config
+    const firebaseConfig = {
+      databaseURL: "https://amu-web-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-<div id="statusMsg"></div>
+    const tempEl = document.getElementById("tempValue");
+    const doEl = document.getElementById("doValue");
 
-<script>
-  const firebaseConfig = {
-    databaseURL: "https://amu-web-default-rtdb.asia-southeast1.firebasedatabase.app/"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+    const tempCtx = document.getElementById("tempChart").getContext("2d");
+    const doCtx = document.getElementById("doChart").getContext("2d");
 
-  const tempEl = document.getElementById("tempValue");
-  const doEl = document.getElementById("doValue");
+    const labels = [];
+    const tempData = [];
+    const doData = [];
 
-  const tempCtx = document.getElementById("tempChart").getContext("2d");
-  const doCtx = document.getElementById("doChart").getContext("2d");
-
-  const labels = [];
-  const tempData = [];
-  const doData = [];
-
-  const tempChart = new Chart(tempCtx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Temperature (°C)',
-        data: tempData,
-        borderColor: '#ff6384',
-        fill: false,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          grid: { color: 'rgba(180, 180, 180, 0.2)' }
-        },
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(180, 180, 180, 0.2)' }
-        }
+    const tempChart = new Chart(tempCtx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Temperature (°C)',
+          data: tempData,
+          borderColor: '#ff6384',
+          fill: false,
+          tension: 0.3
+        }]
       },
-      plugins: {
-        legend: {
-          labels: {
-            color: getComputedStyle(document.body).getPropertyValue('--text')
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            grid: { color: 'rgba(180, 180, 180, 0.2)' }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(180, 180, 180, 0.2)' }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: getComputedStyle(document.body).getPropertyValue('--text')
+            }
           }
         }
       }
-    }
-  });
-
-  const doChart = new Chart(doCtx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Dissolved Oxygen (mg/L)',
-        data: doData,
-        borderColor: '#36a2eb',
-        fill: false,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          grid: { color: 'rgba(180, 180, 180, 0.2)' }
-        },
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(180, 180, 180, 0.2)' }
-        }
-      },
-      plugins: {
-        legend: {
-          labels: {
-            color: getComputedStyle(document.body).getPropertyValue('--text')
-          }
-        }
-      }
-    }
-  });
-
-  db.ref("sensor").on("value", (snapshot) => {
-    const val = snapshot.val();
-    if (!val) return;
-    const temperature = val.temperature;
-    const doValue = val.do;
-
-    const now = new Date();
-    const timeLabel = now.toLocaleTimeString();
-
-    tempEl.textContent = `${temperature} °C`;
-    doEl.textContent = `${doValue} mg/L`;
-
-    if (labels.length > 30) {
-      labels.shift();
-      tempData.shift();
-      doData.shift();
-    }
-
-    labels.push(timeLabel);
-    tempData.push(temperature);
-    doData.push(doValue);
-
-    tempChart.update();
-    doChart.update();
-  });
-
-  function sendCommand(cmd) {
-    const status = document.getElementById("statusMsg");
-    status.textContent = "Working...";
-    db.ref("command").set(cmd).then(() => {
-      setTimeout(() => {
-        status.textContent = "Completed ✅";
-      }, 2000);
     });
-  }
 
-  const themeToggle = document.getElementById("themeToggle");
-  themeToggle.addEventListener("click", () => {
-    document.body.classList.toggle("dark");
-    themeToggle.textContent = document.body.classList.contains("dark")
-      ? "☀️ Light Mode"
-      : "🌙 Dark Mode";
+    const doChart = new Chart(doCtx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Dissolved Oxygen (mg/L)',
+          data: doData,
+          borderColor: '#36a2eb',
+          fill: false,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            grid: { color: 'rgba(180, 180, 180, 0.2)' }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(180, 180, 180, 0.2)' }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: getComputedStyle(document.body).getPropertyValue('--text')
+            }
+          }
+        }
+      }
+    });
 
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text');
-    tempChart.options.plugins.legend.labels.color = textColor;
-    doChart.options.plugins.legend.labels.color = textColor;
+    // ✅ อัปเดตข้อมูลกราฟ
+    db.ref("sensor").on("value", (snapshot) => {
+      const val = snapshot.val();
+      if (!val) return;
 
-    tempChart.update();
-    doChart.update();
-  });
-</script>
+      const temperature = val.temperature;
+      const doValue = val.do;
+
+      const now = new Date();
+      const timeLabel = now.toLocaleTimeString();
+
+      tempEl.textContent = `${temperature} °C`;
+      doEl.textContent = `${doValue} mg/L`;
+
+      if (labels.length > 30) {
+        labels.shift(); tempData.shift(); doData.shift();
+      }
+
+      labels.push(timeLabel);
+      tempData.push(temperature);
+      doData.push(doValue);
+
+      tempChart.update();
+      doChart.update();
+    });
+
+    // ✅ คำสั่งควบคุม
+    function sendCommand(cmd) {
+      const status = document.getElementById("statusMsg");
+      status.textContent = "Working...";
+      db.ref("command").set(cmd).then(() => {
+        setTimeout(() => {
+          status.textContent = "Completed ✅";
+        }, 2000);
+      });
+    }
+
+    // ✅ สลับธีม
+    const themeToggle = document.getElementById("themeToggle");
+    themeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      themeToggle.textContent = document.body.classList.contains("dark")
+        ? "☀️ Light Mode"
+        : "🌙 Dark Mode";
+
+      const textColor = getComputedStyle(document.body).getPropertyValue('--text');
+      tempChart.options.plugins.legend.labels.color = textColor;
+      doChart.options.plugins.legend.labels.color = textColor;
+
+      tempChart.update();
+      doChart.update();
+    });
+  </script>
+</body>
+</html>
