@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sensor Dashboard with Control</title>
+  <title>Sensor Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
@@ -133,7 +133,8 @@
     </div>
   </div>
 
-  <canvas id="sensorChart" width="800" height="400"></canvas>
+  <canvas id="tempChart" width="800" height="300"></canvas>
+  <canvas id="doChart" width="800" height="300"></canvas>
 
   <div class="buttons">
     <button onclick="sendCommand('all')">Run All</button>
@@ -151,49 +152,57 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const ctx = document.getElementById('sensorChart').getContext('2d');
-    const labels = [];
-    const tempData = [];
-    const doData = [];
+    const tempLabels = [], tempData = [];
+    const doLabels = [], doData = [];
 
-    const chart = new Chart(ctx, {
+    const tempCtx = document.getElementById('tempChart').getContext('2d');
+    const doCtx = document.getElementById('doChart').getContext('2d');
+
+    const tempChart = new Chart(tempCtx, {
       type: 'line',
       data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Temperature (°C)',
-            data: tempData,
-            borderColor: 'rgba(0, 123, 255, 1)',
-            backgroundColor: 'rgba(0, 123, 255, 0.2)',
-            yAxisID: 'yTemp'
-          },
-          {
-            label: 'DO (mg/L)',
-            data: doData,
-            borderColor: 'rgba(255, 99, 132, 1)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            yAxisID: 'yDO'
-          }
-        ]
+        labels: tempLabels,
+        datasets: [{
+          label: 'Temperature (°C)',
+          data: tempData,
+          borderColor: 'rgba(0, 123, 255, 1)',
+          backgroundColor: 'rgba(0, 123, 255, 0.2)',
+          tension: 0.3
+        }]
       },
       options: {
         responsive: true,
         scales: {
-          yTemp: {
-            type: 'linear',
-            position: 'right',
+          y: {
             min: 0,
-            max: 100
-          },
-          yDO: {
-            type: 'linear',
-            position: 'left',
+            max: 100,
+            ticks: { stepSize: 10 },
+            grid: { color: 'rgba(180,180,180,0.2)' }
+          }
+        }
+      }
+    });
+
+    const doChart = new Chart(doCtx, {
+      type: 'line',
+      data: {
+        labels: doLabels,
+        datasets: [{
+          label: 'DO (mg/L)',
+          data: doData,
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
             min: 0,
             max: 12000,
-            ticks: {
-              stepSize: 500
-            }
+            ticks: { stepSize: 1000 },
+            grid: { color: 'rgba(180,180,180,0.2)' }
           }
         }
       }
@@ -202,27 +211,26 @@
     db.ref("sensor/temp").on("value", snapshot => {
       const val = snapshot.val();
       document.getElementById("tempValue").textContent = `${val} °C`;
-      addData(chart, val, null);
+      const now = new Date().toLocaleTimeString();
+      tempLabels.push(now);
+      tempData.push(val);
+      if (tempLabels.length > 20) {
+        tempLabels.shift(); tempData.shift();
+      }
+      tempChart.update();
     });
 
     db.ref("sensor/do").on("value", snapshot => {
       const val = snapshot.val();
       document.getElementById("doValue").textContent = `${val} mg/L`;
-      addData(chart, null, val);
-    });
-
-    function addData(chart, temp, doVal) {
       const now = new Date().toLocaleTimeString();
-      labels.push(now);
-      if (temp !== null) tempData.push(temp);
-      else tempData.push(tempData[tempData.length - 1] || 0);
-      if (doVal !== null) doData.push(doVal);
-      else doData.push(doData[doData.length - 1] || 0);
-      if (labels.length > 20) {
-        labels.shift(); tempData.shift(); doData.shift();
+      doLabels.push(now);
+      doData.push(val);
+      if (doLabels.length > 20) {
+        doLabels.shift(); doData.shift();
       }
-      chart.update();
-    }
+      doChart.update();
+    });
 
     function sendCommand(cmd) {
       db.ref("command").set(cmd);
@@ -234,7 +242,6 @@
     // Theme toggle
     const themeToggle = document.getElementById("themeToggle");
     const prefersDark = localStorage.getItem("theme") === "dark";
-
     if (prefersDark) {
       document.body.classList.add("dark");
       themeToggle.textContent = "☀️ Light Mode";
