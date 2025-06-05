@@ -124,20 +124,17 @@
 
   <div class="value-cards">
     <div class="card">
-      <div class="label">💧 Dissolved Oxygen (DO)</div>
-      <div class="value" id="doValue">-- mg/L</div>
-    </div>
-    <div class="card">
       <div class="label">🌡️ Temperature</div>
       <div class="value" id="tempValue">-- °C</div>
     </div>
+    <div class="card">
+      <div class="label">💧 Dissolved Oxygen (DO)</div>
+      <div class="value" id="doValue">-- mg/L</div>
+    </div>
   </div>
 
-  <!-- DO Chart (ย้ายขึ้นบน) -->
-  <canvas id="doChart" width="800" height="300"></canvas>
-
-  <!-- Temperature Chart (ย้ายลงล่าง) -->
   <canvas id="tempChart" width="800" height="300"></canvas>
+  <canvas id="doChart" width="800" height="300"></canvas>
 
   <div class="buttons">
     <button onclick="sendCommand('all')">Run All</button>
@@ -161,36 +158,6 @@
     const tempCtx = document.getElementById('tempChart').getContext('2d');
     const doCtx = document.getElementById('doChart').getContext('2d');
 
-    const doChart = new Chart(doCtx, {
-      type: 'line',
-      data: {
-        labels: doLabels,
-        datasets: [{
-          label: 'DO (mg/L)',
-          data: doData,
-          borderColor: 'rgba(255, 99, 132, 1)',
-          backgroundColor: 'rgba(255, 99, 132, 0.2)',
-          tension: 0.3
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            min: 0,
-            max: 12000,
-            ticks: {
-              stepSize: 500,
-              callback: function(value) {
-                return value.toLocaleString(); // adds comma separators if needed
-              }
-            },
-            grid: { color: 'rgba(180,180,180,0.2)' }
-          }
-        }
-      }
-    });
-
     const tempChart = new Chart(tempCtx, {
       type: 'line',
       data: {
@@ -210,6 +177,31 @@
             min: 0,
             max: 100,
             ticks: { stepSize: 10 },
+            grid: { color: 'rgba(180,180,180,0.2)' }
+          }
+        }
+      }
+    });
+
+    const doChart = new Chart(doCtx, {
+      type: 'line',
+      data: {
+        labels: doLabels,
+        datasets: [{
+          label: 'DO (mg/L)',
+          data: doData,
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            min: 0,
+            max: 12000,
+            ticks: { stepSize: 1000 },
             grid: { color: 'rgba(180,180,180,0.2)' }
           }
         }
