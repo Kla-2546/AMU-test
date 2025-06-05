@@ -7,6 +7,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
+    /* โค้ด CSS เหมือนเดิมไม่เปลี่ยน */
     :root {
       --bg: #f4f6f8;
       --card-bg: #fff;
@@ -161,13 +162,20 @@
   <div id="statusMsg"></div>
 
   <script>
+    // ใส่ config Firebase ของมึงตรงนี้ให้ครบจัดๆ
     const firebaseConfig = {
-      databaseURL: "https://amu-web-default-rtdb.asia-southeast1.firebasedatabase.app/"
+      apiKey: "AIzaSyDUMMY1234567890abcdefghijklmno",           // ใส่ apiKey จริงมึงนะ
+      authDomain: "amu-web.firebaseapp.com",                   // ตัวอย่างให้
+      databaseURL: "https://amu-web-default-rtdb.asia-southeast1.firebasedatabase.app/",
+      projectId: "amu-web",
+      storageBucket: "amu-web.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abcdefghijklmno"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const baseURL = `http://${location.hostname}`;
     let updateInterval = 5000;
     let updateTimer = null;
     let stopTimer = null;
@@ -274,17 +282,25 @@
       stopTimer = null;
     }
 
+    // *** แก้ตรงนี้ ให้เขียนคำสั่งลง Firebase แทน fetch ***
     function sendCommand(cmd) {
-      fetch(`${baseURL}/${cmd}`);
-      document.getElementById("statusMsg").textContent = "Working...";
-      if (cmd === 'all') startUpdating();
-      else stopUpdating();
-      setTimeout(() => {
-        document.getElementById("statusMsg").textContent = "Completed ✅";
-      }, 3000);
+      db.ref("commands/current").set(cmd)
+        .then(() => {
+          document.getElementById("statusMsg").textContent = "Working...";
+          if (cmd === 'all') startUpdating();
+          else stopUpdating();
+
+          setTimeout(() => {
+            document.getElementById("statusMsg").textContent = "Completed ✅";
+          }, 3000);
+        })
+        .catch(err => {
+          document.getElementById("statusMsg").textContent = "Error sending command!";
+          console.error("Firebase write error:", err);
+        });
     }
 
-    // Theme toggle
+    // Theme toggle โคตรเดิม
     const themeToggle = document.getElementById("themeToggle");
     const prefersDark = localStorage.getItem("theme") === "dark";
     if (prefersDark) {
