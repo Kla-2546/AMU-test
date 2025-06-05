@@ -16,7 +16,6 @@
       --btn-bg: #007bff;
       --btn-text: white;
     }
-
     body.dark {
       --bg: #1e1e1e;
       --card-bg: #2b2b2b;
@@ -26,7 +25,6 @@
       --btn-bg: #0d6efd;
       --btn-text: #fff;
     }
-
     body {
       font-family: Arial, sans-serif;
       background-color: var(--bg);
@@ -36,11 +34,7 @@
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
     }
-
-    h1 {
-      margin-bottom: 30px;
-    }
-
+    h1 { margin-bottom: 30px; }
     .value-cards {
       display: flex;
       justify-content: center;
@@ -48,7 +42,6 @@
       margin-bottom: 30px;
       flex-wrap: wrap;
     }
-
     .card {
       background: var(--card-bg);
       padding: 20px 40px;
@@ -58,24 +51,20 @@
       flex: 1 1 150px;
       max-width: 250px;
     }
-
     .label {
       font-size: 1.2em;
       color: var(--subtext);
     }
-
     .value {
       font-size: 2.5em;
       margin-top: 10px;
       font-weight: bold;
     }
-
     .chart-container {
       width: 90vw;
       max-width: 900px;
       margin: 0 auto 40px;
     }
-
     canvas {
       width: 100% !important;
       height: 400px !important;
@@ -84,11 +73,7 @@
       box-shadow: 0 2px 10px var(--shadow);
       padding: 10px;
     }
-
-    .buttons {
-      margin-bottom: 20px;
-    }
-
+    .buttons { margin-bottom: 20px; }
     button {
       font-size: 1em;
       padding: 12px 25px;
@@ -101,18 +86,13 @@
       box-shadow: 0 4px 6px rgba(0, 123, 255, 0.4);
       transition: background-color 0.3s;
     }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
+    button:hover { background-color: #0056b3; }
     #statusMsg {
       font-size: 1.1em;
       margin-top: 15px;
       min-height: 1.5em;
       font-weight: 600;
     }
-
     #themeToggle {
       position: fixed;
       top: 20px;
@@ -130,7 +110,6 @@
 </head>
 <body>
   <h1>🌐 Real-Time Sensor Dashboard & Control</h1>
-
   <button id="themeToggle">🌙 Dark Mode</button>
 
   <div class="value-cards">
@@ -144,134 +123,58 @@
     </div>
   </div>
 
-  <div class="chart-container">
-    <canvas id="doChart"></canvas>
-  </div>
-
-  <div class="chart-container">
-    <canvas id="tempChart"></canvas>
-  </div>
+  <div class="chart-container"><canvas id="doChart"></canvas></div>
+  <div class="chart-container"><canvas id="tempChart"></canvas></div>
 
   <div class="buttons">
-    <button onclick="sendCommand('all')">Run All</button>
+    <button onclick="runAll()">Run All</button>
     <button onclick="sendCommand('wash')">Wash</button>
     <button onclick="sendCommand('wipe')">Wipe</button>
   </div>
-
   <div id="statusMsg"></div>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
+      apiKey: "AIzaSyB9g7ctU8LU56_1SLjNi4bzaC3ig9tjJTM",
       databaseURL: "https://amu-web-default-rtdb.asia-southeast1.firebasedatabase.app/"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const tempLabels = [];
-    const tempData = [];
-    const doLabels = [];
-    const doData = [];
+    const doLabels = [], doData = [];
+    const tempLabels = [], tempData = [];
 
-    const tempCtx = document.getElementById('tempChart').getContext('2d');
-    const doCtx = document.getElementById('doChart').getContext('2d');
-
-    const doChart = new Chart(doCtx, {
-      type: 'line',
-      data: {
-        labels: doLabels,
-        datasets: [{
-          label: 'DO (mg/L)',
-          data: doData,
-          borderColor: 'rgba(255, 99, 132, 1)',
-         backgroundColor: 'transparent',
-          tension: 0.3,
-          fill: true,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        animation: { duration: 0 },
-        scales: {
-          y: {
-            min: 0,
-            max: 12000,
-            ticks: {
-              stepSize: 500,
-              callback: val => val.toLocaleString()
-            },
-            grid: { color: 'rgba(180,180,180,0.2)' }
-          }
-        },
-        plugins: {
-          legend: { display: true }
-        }
-      }
+    const doChart = new Chart(document.getElementById('doChart').getContext('2d'), {
+      type: 'line', data: { labels: doLabels, datasets: [{ label: 'DO (mg/L)', data: doData, borderColor: 'rgba(255,99,132,1)', backgroundColor: 'transparent', tension: 0.3, fill: true, pointRadius: 0 }] },
+      options: { responsive: true, animation: { duration: 0 }, scales: { y: { min: 0, max: 12000, ticks: { stepSize: 500 } } }, plugins: { legend: { display: true } } }
     });
 
-    const tempChart = new Chart(tempCtx, {
-      type: 'line',
-      data: {
-        labels: tempLabels,
-        datasets: [{
-          label: 'Temperature (°C)',
-          data: tempData,
-          borderColor: 'rgba(0, 123, 255, 1)',
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          fill: true,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        animation: { duration: 0 },
-        scales: {
-          y: {
-            min: 0,
-            max: 100,
-            ticks: { stepSize: 10 },
-            grid: { color: 'rgba(180,180,180,0.2)' }
-          }
-        },
-        plugins: {
-          legend: { display: true }
-        }
-      }
+    const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), {
+      type: 'line', data: { labels: tempLabels, datasets: [{ label: 'Temperature (°C)', data: tempData, borderColor: 'rgba(0,123,255,1)', backgroundColor: 'transparent', tension: 0.3, fill: true, pointRadius: 0 }] },
+      options: { responsive: true, animation: { duration: 0 }, scales: { y: { min: 0, max: 100, ticks: { stepSize: 10 } } }, plugins: { legend: { display: true } } }
     });
 
-    // อัปเดตข้อมูลทุก 5 วิ (ลื่นๆ)
-    let updateInterval = 5000;
     let updateTimer = null;
 
     function updateData() {
-      db.ref("sensor/do").once("value").then(snapshot => {
-        const val = snapshot.val();
+      db.ref("sensor/do").once("value").then(s => {
+        const val = s.val();
         if (val !== null) {
           document.getElementById("doValue").textContent = `${val} mg/L`;
           const now = new Date().toLocaleTimeString();
-          doLabels.push(now);
-          doData.push(val);
-          if (doLabels.length > 20) {
-            doLabels.shift();
-            doData.shift();
-          }
+          doLabels.push(now); doData.push(val);
+          if (doLabels.length > 20) { doLabels.shift(); doData.shift(); }
           doChart.update('none');
         }
       });
 
-      db.ref("sensor/temp").once("value").then(snapshot => {
-        const val = snapshot.val();
+      db.ref("sensor/temp").once("value").then(s => {
+        const val = s.val();
         if (val !== null) {
           document.getElementById("tempValue").textContent = `${val} °C`;
           const now = new Date().toLocaleTimeString();
-          tempLabels.push(now);
-          tempData.push(val);
-          if (tempLabels.length > 20) {
-            tempLabels.shift();
-            tempData.shift();
-          }
+          tempLabels.push(now); tempData.push(val);
+          if (tempLabels.length > 20) { tempLabels.shift(); tempData.shift(); }
           tempChart.update('none');
         }
       });
@@ -279,32 +182,34 @@
 
     function startUpdating() {
       updateData();
-      updateTimer = setInterval(updateData, updateInterval);
+      updateTimer = setInterval(updateData, 5000);
     }
 
     function stopUpdating() {
       clearInterval(updateTimer);
       updateTimer = null;
-      // เคลียร์ข้อมูลในกราฟและค่าบนหน้าเว็บเมื่อหยุดอัปเดต
-      doLabels.length = 0; doData.length = 0;
-      tempLabels.length = 0; tempData.length = 0;
-      doChart.update();
-      tempChart.update();
+      doLabels.length = doData.length = tempLabels.length = tempData.length = 0;
+      doChart.update(); tempChart.update();
       document.getElementById("doValue").textContent = "-- mg/L";
       document.getElementById("tempValue").textContent = "-- °C";
     }
 
-    // อัตโนมัติเริ่มอัปเดตตอนโหลด
-    startUpdating();
+    function runAll() {
+      sendCommand('all');
+      startUpdating();
+      const status = document.getElementById("statusMsg");
+      status.textContent = "Working...";
+      setTimeout(() => {
+        stopUpdating();
+        status.textContent = "Completed ✅";
+      }, 20000); // 20 วินาทีหรือเวลาทำงานจริง
+    }
 
-    // ไม่มีปุ่มเริ่ม/หยุด แต่ถ้ามี logic stop อัตโนมัติในอนาคต ให้เรียก stopUpdating();
-
-    // คำสั่งปุ่ม
     function sendCommand(cmd) {
       db.ref("command").set(cmd);
       const status = document.getElementById("statusMsg");
       status.textContent = "Working...";
-      setTimeout(() => status.textContent = "Completed ✅", 3000);
+      if (cmd !== 'all') setTimeout(() => status.textContent = "Completed ✅", 3000);
     }
 
     // Theme toggle
@@ -314,7 +219,6 @@
       document.body.classList.add("dark");
       themeToggle.textContent = "☀️ Light Mode";
     }
-
     themeToggle.onclick = () => {
       document.body.classList.toggle("dark");
       const isDark = document.body.classList.contains("dark");
