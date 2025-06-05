@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ESP32 Control & Realtime Graph</title>
+  <meta charset="UTF-8" />
+  <title>Sensor Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
     :root {
       --bg: #f4f6f8;
@@ -16,6 +16,7 @@
       --btn-bg: #007bff;
       --btn-text: white;
     }
+
     body.dark {
       --bg: #1e1e1e;
       --card-bg: #2b2b2b;
@@ -25,6 +26,7 @@
       --btn-bg: #0d6efd;
       --btn-text: #fff;
     }
+
     body {
       font-family: Arial, sans-serif;
       background-color: var(--bg);
@@ -34,7 +36,11 @@
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
     }
-    h1 { margin-bottom: 20px; }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+
     .value-cards {
       display: flex;
       justify-content: center;
@@ -42,6 +48,7 @@
       margin-bottom: 30px;
       flex-wrap: wrap;
     }
+
     .card {
       background: var(--card-bg);
       padding: 20px 40px;
@@ -51,13 +58,24 @@
       flex: 1 1 150px;
       max-width: 250px;
     }
-    .label { font-size: 1.2em; color: var(--subtext); }
-    .value { font-size: 2.5em; margin-top: 10px; font-weight: bold; }
+
+    .label {
+      font-size: 1.2em;
+      color: var(--subtext);
+    }
+
+    .value {
+      font-size: 2.5em;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
     .chart-container {
       width: 90vw;
       max-width: 900px;
       margin: 0 auto 40px;
     }
+
     canvas {
       width: 100% !important;
       height: 400px !important;
@@ -66,9 +84,11 @@
       box-shadow: 0 2px 10px var(--shadow);
       padding: 10px;
     }
+
     .buttons {
       margin-bottom: 20px;
     }
+
     button {
       font-size: 1em;
       padding: 12px 25px;
@@ -81,8 +101,18 @@
       box-shadow: 0 4px 6px rgba(0, 123, 255, 0.4);
       transition: background-color 0.3s;
     }
-    button:hover { background-color: #0056b3; }
-    #statusMsg { font-size: 1.1em; margin-top: 15px; min-height: 1.5em; font-weight: 600; }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #statusMsg {
+      font-size: 1.1em;
+      margin-top: 15px;
+      min-height: 1.5em;
+      font-weight: 600;
+    }
+
     #themeToggle {
       position: fixed;
       top: 20px;
@@ -94,16 +124,18 @@
       padding: 8px 16px;
       cursor: pointer;
       font-weight: bold;
+      user-select: none;
     }
   </style>
 </head>
 <body>
-  <h1>🌐 ESP32 Dashboard & Control</h1>
+  <h1>🌐 Real-Time Sensor Dashboard & Control</h1>
+
   <button id="themeToggle">🌙 Dark Mode</button>
 
   <div class="value-cards">
     <div class="card">
-      <div class="label">💧 DO</div>
+      <div class="label">💧 Dissolved Oxygen (DO)</div>
       <div class="value" id="doValue">-- mg/L</div>
     </div>
     <div class="card">
@@ -115,53 +147,79 @@
   <div class="chart-container">
     <canvas id="doChart"></canvas>
   </div>
+
   <div class="chart-container">
     <canvas id="tempChart"></canvas>
   </div>
 
   <div class="buttons">
-    <button onclick="triggerAction('all')">All</button>
-    <button onclick="triggerAction('wash')">Wash</button>
-    <button onclick="triggerAction('wipe')">Wipe</button>
+    <button onclick="sendCommand('all')">Run All</button>
+    <button onclick="sendCommand('wash')">Wash</button>
+    <button onclick="sendCommand('wipe')">Wipe</button>
   </div>
 
   <div id="statusMsg"></div>
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyB9g7ctU8LU56_1SLjNi4bzaC3ig9tjJTM",
       databaseURL: "https://amu-web-default-rtdb.asia-southeast1.firebasedatabase.app/"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     const baseURL = `http://${location.hostname}`;
+    let updateInterval = 5000;
+    let updateTimer = null;
+    let stopTimer = null;
+
     const doLabels = [], doData = [], tempLabels = [], tempData = [];
-    let doChart, tempChart;
 
-    function createChart(ctx, label, color, maxY) {
-      return new Chart(ctx, {
-        type: 'line',
-        data: { labels: [], datasets: [{ label, data: [], borderColor: color, backgroundColor: 'transparent', tension: 0.3, pointRadius: 0 }] },
-        options: {
-          responsive: true,
-          animation: { duration: 0 },
-          scales: {
-            y: {
-              min: 0, max: maxY,
-              grid: { color: 'rgba(180,180,180,0.2)' },
-              ticks: { stepSize: maxY / 10 }
-            }
-          },
-          plugins: { legend: { display: true } }
-        }
-      });
-    }
+    const doCtx = document.getElementById('doChart').getContext('2d');
+    const tempCtx = document.getElementById('tempChart').getContext('2d');
 
-    doChart = createChart(document.getElementById('doChart').getContext('2d'), 'DO (mg/L)', 'blue', 12000);
-    tempChart = createChart(document.getElementById('tempChart').getContext('2d'), 'Temperature (°C)', 'red', 100);
+    const doChart = new Chart(doCtx, {
+      type: 'line',
+      data: {
+        labels: doLabels,
+        datasets: [{ label: 'DO (mg/L)', data: doData, borderColor: 'rgba(255, 99, 132, 1)', backgroundColor: 'transparent', tension: 0.3, fill: true, pointRadius: 0 }]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 0 },
+        scales: {
+          y: {
+            min: 0,
+            max: 12000,
+            ticks: { stepSize: 500, callback: val => val.toLocaleString() },
+            grid: { color: 'rgba(180,180,180,0.2)' }
+          }
+        },
+        plugins: { legend: { display: true } }
+      }
+    });
 
-    function updateCharts() {
+    const tempChart = new Chart(tempCtx, {
+      type: 'line',
+      data: {
+        labels: tempLabels,
+        datasets: [{ label: 'Temperature (°C)', data: tempData, borderColor: 'rgba(0, 123, 255, 1)', backgroundColor: 'transparent', tension: 0.3, fill: true, pointRadius: 0 }]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 0 },
+        scales: {
+          y: {
+            min: 0,
+            max: 100,
+            ticks: { stepSize: 10 },
+            grid: { color: 'rgba(180,180,180,0.2)' }
+          }
+        },
+        plugins: { legend: { display: true } }
+      }
+    });
+
+    function updateData() {
       db.ref("sensor/do").once("value").then(snapshot => {
         const val = snapshot.val();
         if (val !== null) {
@@ -169,12 +227,9 @@
           const now = new Date().toLocaleTimeString();
           doLabels.push(now); doData.push(val);
           if (doLabels.length > 20) { doLabels.shift(); doData.shift(); }
-          doChart.data.labels = doLabels;
-          doChart.data.datasets[0].data = doData;
-          doChart.update();
+          doChart.update('none');
         }
       });
-
       db.ref("sensor/temp").once("value").then(snapshot => {
         const val = snapshot.val();
         if (val !== null) {
@@ -182,23 +237,29 @@
           const now = new Date().toLocaleTimeString();
           tempLabels.push(now); tempData.push(val);
           if (tempLabels.length > 20) { tempLabels.shift(); tempData.shift(); }
-          tempChart.data.labels = tempLabels;
-          tempChart.data.datasets[0].data = tempData;
-          tempChart.update();
+          tempChart.update('none');
         }
       });
     }
 
-    setInterval(updateCharts, 3000);
+    function startUpdating() {
+      updateData();
+      updateTimer = setInterval(updateData, updateInterval);
+      stopTimer = setTimeout(stopUpdating, 15000); // หยุดอัตโนมัติหลัง 15 วิ
+    }
 
-    function triggerAction(action) {
-      fetch(`${baseURL}/${action}`)
-        .then(() => {
-          document.getElementById("statusMsg").textContent = "Working...";
-          setTimeout(() => {
-            document.getElementById("statusMsg").textContent = "Completed ✅";
-          }, 3000);
-        });
+    function stopUpdating() {
+      clearInterval(updateTimer);
+      clearTimeout(stopTimer);
+      updateTimer = null;
+      stopTimer = null;
+    }
+
+    function sendCommand(cmd) {
+      fetch(`${baseURL}/${cmd}`);
+      document.getElementById("statusMsg").textContent = "Working...";
+      startUpdating();
+      setTimeout(() => document.getElementById("statusMsg").textContent = "Completed ✅", 3000);
     }
 
     // Theme toggle
