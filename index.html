@@ -181,7 +181,15 @@
       type: 'line',
       data: {
         labels: doLabels,
-        datasets: [{ label: 'DO (mg/L)', data: doData, borderColor: 'rgba(255, 99, 132, 1)', backgroundColor: 'transparent', tension: 0.3, fill: true, pointRadius: 0 }]
+        datasets: [{
+          label: 'DO (mg/L)',
+          data: doData,
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'rgba(255, 99, 132, 0.1)',
+          tension: 0.3,
+          fill: true,
+          pointRadius: 0
+        }]
       },
       options: {
         responsive: true,
@@ -190,7 +198,10 @@
           y: {
             min: 0,
             max: 12000,
-            ticks: { stepSize: 500, callback: val => val.toLocaleString() },
+            ticks: {
+              stepSize: 500,
+              callback: val => val.toLocaleString()
+            },
             grid: { color: 'rgba(180,180,180,0.2)' }
           }
         },
@@ -202,7 +213,15 @@
       type: 'line',
       data: {
         labels: tempLabels,
-        datasets: [{ label: 'Temperature (°C)', data: tempData, borderColor: 'rgba(0, 123, 255, 1)', backgroundColor: 'transparent', tension: 0.3, fill: true, pointRadius: 0 }]
+        datasets: [{
+          label: 'Temperature (°C)',
+          data: tempData,
+          borderColor: 'rgba(0, 123, 255, 1)',
+          backgroundColor: 'rgba(0, 123, 255, 0.1)',
+          tension: 0.3,
+          fill: true,
+          pointRadius: 0
+        }]
       },
       options: {
         responsive: true,
@@ -245,7 +264,7 @@
     function startUpdating() {
       updateData();
       updateTimer = setInterval(updateData, updateInterval);
-      stopTimer = setTimeout(stopUpdating, 15000); // หยุดอัตโนมัติหลัง 15 วิ
+      stopTimer = setTimeout(stopUpdating, 15000);
     }
 
     function stopUpdating() {
@@ -258,8 +277,11 @@
     function sendCommand(cmd) {
       fetch(`${baseURL}/${cmd}`);
       document.getElementById("statusMsg").textContent = "Working...";
-      startUpdating();
-      setTimeout(() => document.getElementById("statusMsg").textContent = "Completed ✅", 3000);
+      if (cmd === 'all') startUpdating();
+      else stopUpdating();
+      setTimeout(() => {
+        document.getElementById("statusMsg").textContent = "Completed ✅";
+      }, 3000);
     }
 
     // Theme toggle
