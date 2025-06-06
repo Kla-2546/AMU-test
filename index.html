@@ -122,7 +122,7 @@
   <div class="value-cards">
     <div class="card">
       <div class="label">💧 Dissolved Oxygen (DO)</div>
-      <div class="value" id="doValue">-- μ/L</div>
+      <div class="value" id="doValue">-- μg/L</div>
     </div>
     <div class="card">
       <div class="label">🌡️ Temperature</div>
@@ -177,7 +177,7 @@
       data: {
         labels: doLabels,
         datasets: [{
-          label: 'DO (μ/L)',
+          label: 'DO (μg/L)',
           data: doData,
           borderColor: 'rgba(255, 99, 132, 1)',
           backgroundColor: 'transparent',
@@ -237,7 +237,7 @@
       db.ref("sensor/do").once("value").then(snapshot => {
         const val = snapshot.val();
         if (val !== null) {
-          document.getElementById("doValue").textContent = `${val} mg/L`;
+          document.getElementById("doValue").textContent = `${val} μg/L`;
           const now = new Date().toLocaleTimeString();
           doLabels.push(now);
           doData.push(val);
