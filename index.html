@@ -246,6 +246,26 @@
       }
     });
 
+    // เริ่มซ่อนกราฟตอนโหลดเพจ
+    document.querySelectorAll('.chart-container').forEach(c => c.style.display = 'none');
+
+    function clearData() {
+      doLabels.length = 0;
+      doData.length = 0;
+      tempLabels.length = 0;
+      tempData.length = 0;
+      doChart.update();
+      tempChart.update();
+    }
+
+    function showCharts() {
+      document.querySelectorAll('.chart-container').forEach(c => c.style.display = 'block');
+    }
+
+    function hideCharts() {
+      document.querySelectorAll('.chart-container').forEach(c => c.style.display = 'none');
+    }
+
     function updateData() {
       db.ref("sensor/do").once("value").then(snapshot => {
         const val = snapshot.val();
@@ -254,24 +274,27 @@
           const now = new Date().toLocaleTimeString();
           doLabels.push(now); doData.push(val);
           if (doLabels.length > 20) { doLabels.shift(); doData.shift(); }
-          doChart.update('none');
+          doChart.update();
         }
       });
-      db.ref("sensor/temp").once("value").then(snapshot => {
+
+      db.ref("sensor/temperature").once("value").then(snapshot => {
         const val = snapshot.val();
         if (val !== null) {
           document.getElementById("tempValue").textContent = `${val} °C`;
           const now = new Date().toLocaleTimeString();
           tempLabels.push(now); tempData.push(val);
           if (tempLabels.length > 20) { tempLabels.shift(); tempData.shift(); }
-          tempChart.update('none');
+          tempChart.update();
         }
       });
     }
 
     function startUpdating() {
       if (!updateTimer) {
-        updateData(); // อัพเดตทันที
+        clearData();    // เคลียร์ข้อมูลเก่า
+        showCharts();   // แสดงกราฟ
+        updateData();   // อัพเดตทันที
         updateTimer = setInterval(updateData, updateInterval);
       }
     }
@@ -281,10 +304,11 @@
         clearInterval(updateTimer);
         updateTimer = null;
       }
+      hideCharts();  // ซ่อนกราฟตอนหยุด
+      clearData();   // ล้างข้อมูลกราฟ
     }
 
     function sendCommand(cmd) {
-      // เขียนคำสั่งไป Firebase
       db.ref("command").set(cmd)
         .then(() => {
           document.getElementById("statusMsg").textContent = "Working...";
@@ -307,7 +331,7 @@
                 document.getElementById("statusMsg").textContent = "Error resetting command!";
                 console.error("Firebase write error:", err);
               });
-          }, 360000); // รอ 3 วินาที รีเซ็ตเป็น idle
+          }, 360000); // 6 นาที = 360000 ms
         })
         .catch(err => {
           document.getElementById("statusMsg").textContent = "Error sending command!";
@@ -315,14 +339,14 @@
         });
     }
 
-    // Dark mode toggle
-    const themeToggleBtn = document.getElementById('themeToggle');
-    themeToggleBtn.addEventListener('click', () => {
+    // ธีมสลับโหมด
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', () => {
       document.body.classList.toggle('dark');
-      if (document.body.classList.contains('dark')) {
-        themeToggleBtn.textContent = '☀️ Light Mode';
+      if(document.body.classList.contains('dark')) {
+        themeToggle.textContent = '☀️ Light Mode';
       } else {
-        themeToggleBtn.textContent = '🌙 Dark Mode';
+        themeToggle.textContent = '🌙 Dark Mode';
       }
     });
   </script>
