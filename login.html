@@ -161,7 +161,7 @@
   appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
   measurementId: "G-37ETDELEFH"
 };
-    
+    firebase.initializeApp(firebaseConfig);   
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
         if (user.isAnonymous) {
@@ -181,8 +181,6 @@
     });
   }
   
-
-    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     let updateInterval = 5000;
