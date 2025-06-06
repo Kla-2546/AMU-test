@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>Login | AMU</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <!-- Style -->
   <style>
     body {
@@ -70,9 +72,7 @@
     <hr>
     <button onclick="guestLogin()">เข้าสู่ระบบแบบผู้เยี่ยมชม (Guest)</button>
   </div>
-
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  
   <script>
     // TODO: Replace with your Firebase config
     const firebaseConfig = {
