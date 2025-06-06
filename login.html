@@ -1,92 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login | AMU Dashboard</title>
+  <meta charset="UTF-8">
+  <title>Login | AMU</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <!-- Style -->
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to bottom right, #4facfe, #00f2fe);
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #2196f3, #00bcd4);
       height: 100vh;
       margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .login-box {
-      background-color: white;
-      padding: 30px 40px;
-      border-radius: 15px;
-      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+
+    .login-container {
+      background-color: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
       text-align: center;
-      width: 300px;
+      width: 90%;
+      max-width: 400px;
     }
-    h2 {
-      margin-bottom: 20px;
-      color: #333;
-    }
+
     input {
       width: 100%;
       padding: 10px;
-      margin: 8px 0;
-      border-radius: 8px;
+      margin: 10px 0;
+      border-radius: 6px;
       border: 1px solid #ccc;
     }
+
     button {
-      width: 100%;
-      padding: 10px;
-      background-color: #00bcd4;
+      background-color: #2196f3;
       color: white;
+      padding: 10px 20px;
       border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-top: 12px;
-    }
-    button:hover {
-      background-color: #0097a7;
-    }
-    #errorMsg {
-      color: red;
+      border-radius: 6px;
       margin-top: 10px;
-      font-size: 0.9em;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #1976d2;
+    }
+
+    .error {
+      color: red;
+      margin: 10px 0;
+    }
+
+    hr {
+      margin: 20px 0;
     }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <h2>AMU Dashboard Login</h2>
-    <input type="email" id="email" placeholder="Email" required />
-    <input type="password" id="password" placeholder="Password" required />
-    <button onclick="login()">Login</button>
-    <p id="errorMsg"></p>
+
+  <div class="login-container">
+    <h2>เข้าสู่ระบบ</h2>
+    <div class="error" id="error"></div>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">เข้าสู่ระบบ</button>
+    <hr>
+    <button onclick="guestLogin()">เข้าสู่ระบบแบบผู้เยี่ยมชม (Guest)</button>
   </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-
   <script>
-    // 🛠 เปลี่ยนค่าด้านล่างให้ตรงกับโปรเจกต์ Firebase ของคุณ
+    // TODO: Replace with your Firebase config
     const firebaseConfig = {
-      apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
-      authDomain: "amutestv03.firebaseapp.com",
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      appId: "YOUR_APP_ID"
     };
 
     firebase.initializeApp(firebaseConfig);
 
     function login() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
 
       firebase.auth().signInWithEmailAndPassword(email, password)
         .then(() => {
           window.location.href = "index.html";
         })
         .catch((error) => {
-          document.getElementById("errorMsg").innerText = error.message;
+          document.getElementById("error").textContent = "❌ " + error.message;
+        });
+    }
+
+    function guestLogin() {
+      firebase.auth().signInAnonymously()
+        .then(() => {
+          window.location.href = "index.html";
+        })
+        .catch((error) => {
+          document.getElementById("error").textContent = "❌ " + error.message;
         });
     }
   </script>
+
 </body>
 </html>
