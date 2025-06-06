@@ -160,7 +160,6 @@
   appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
   measurementId: "G-37ETDELEFH"
 };
-firebase.initializeApp(firebaseConfig);
     
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
@@ -174,11 +173,7 @@ firebase.initializeApp(firebaseConfig);
         window.location.href = "login.html";
       }
     });
-    
-    function startApp() {
-      // ที่นี่ใส่ฟังก์ชันเริ่มต้นทั้งหมด เช่นโหลดกราฟ, ปุ่ม, Firebase listener
-      console.log("🚀 App Started");
-    }
+  
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
