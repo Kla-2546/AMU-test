@@ -74,6 +74,8 @@
     <button onclick="guestLogin()">เข้าสู่ระบบแบบผู้เยี่ยมชม (Guest)</button>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <script>
     // TODO: Replace with your Firebase config
     const firebaseConfig = {
@@ -86,8 +88,7 @@
   appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
   measurementId: "G-37ETDELEFH"
 };
-
-    firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
 
     function login() {
       const email = document.getElementById('email').value;
