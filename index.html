@@ -159,6 +159,19 @@
   appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
   measurementId: "G-37ETDELEFH"
 };
+    
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        if (user.isAnonymous) {
+          console.log("🔓 Logged in as Guest");
+        } else {
+          console.log("✅ Logged in as:", user.email);
+        }
+      } else {
+        console.warn("⛔ No user logged in, redirecting...");
+        window.location.href = "login.html";
+      }
+    });
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
