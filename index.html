@@ -299,7 +299,7 @@
                 document.getElementById("statusMsg").textContent = "Error resetting command!";
                 console.error("Firebase write error:", err);
               });
-          }, 3000); // รอ 3 วินาที แล้วรีเซ็ต
+          }, 360,000); // รอ 3 วินาที แล้วรีเซ็ต
         })
         .catch(err => {
           document.getElementById("statusMsg").textContent = "Error sending command!";
