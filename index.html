@@ -1,106 +1,183 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Sensor Dashboard</title>
+  <meta charset="UTF-8">
+  <title>ESP32 Realtime Control</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: 'Arial', sans-serif;
       text-align: center;
-      background-color: #f2f2f2;
+      padding: 30px;
+      background: #f4f4f4;
+    }
+    button {
+      width: 100px;
+      height: 100px;
+      margin: 15px;
+      font-size: 18px;
+      border-radius: 50%;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .status {
+      font-size: 20px;
+      margin-top: 20px;
+      color: #333;
     }
     canvas {
-      max-width: 90%;
+      max-width: 600px;
       margin: 20px auto;
-    }
-    h2 {
-      margin-top: 40px;
     }
   </style>
 </head>
 <body>
-  <h1>📊 Real-Time Sensor Data</h1>
 
-  <h2>💧 Dissolved Oxygen (DO)</h2>
+  <h1>ESP32 Web Control</h1>
+
+  <button onclick="sendCommand('all')">All</button>
+  <button onclick="sendCommand('wash')">Wash</button>
+  <button onclick="sendCommand('wipe')">Wipe</button>
+
+  <div class="status" id="statusMsg">Waiting for command...</div>
+
   <canvas id="doChart"></canvas>
-
-  <h2>🌡️ Temperature</h2>
   <canvas id="tempChart"></canvas>
 
   <script>
-    // ✅ Firebase config ตรงนี้เอาของมึงมาใส่
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT.firebaseapp.com",
       databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
+      projectId: "YOUR_PROJECT",
       storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "XXXXXXX",
-      appId: "1:XXXX:web:XXXX"
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
     };
 
     firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    const db = firebase.database();
 
-    // กราฟ DO
-    const doCtx = document.getElementById('doChart').getContext('2d');
-    const doData = {
-      labels: [],
-      datasets: [{
-        label: 'DO (mg/L)',
-        backgroundColor: 'rgba(0, 123, 255, 0.5)',
-        borderColor: '#007bff',
-        data: [],
-      }]
-    };
-    const doChart = new Chart(doCtx, {
+    let doLabels = [], doData = [], tempLabels = [], tempData = [];
+    let updateInterval = null;
+    let stopTimer = null;
+
+    const doChart = new Chart(document.getElementById('doChart'), {
       type: 'line',
-      data: doData,
-      options: { animation: false, scales: { x: { title: { display: true, text: 'Time' } }, y: { beginAtZero: true } } }
-    });
-
-    // กราฟ Temperature
-    const tempCtx = document.getElementById('tempChart').getContext('2d');
-    const tempData = {
-      labels: [],
-      datasets: [{
-        label: 'Temperature (°C)',
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-        borderColor: '#ff6384',
-        data: [],
-      }]
-    };
-    const tempChart = new Chart(tempCtx, {
-      type: 'line',
-      data: tempData,
-      options: { animation: false, scales: { x: { title: { display: true, text: 'Time' } }, y: { beginAtZero: true } } }
-    });
-
-    // ฟังก์ชันอัปเดตกราฟ
-    function updateChart(chart, dataset, value) {
-      const now = new Date().toLocaleTimeString();
-      dataset.labels.push(now);
-      dataset.datasets[0].data.push(value);
-      if (dataset.labels.length > 20) {
-        dataset.labels.shift();
-        dataset.datasets[0].data.shift();
+      data: {
+        labels: doLabels,
+        datasets: [{
+          label: 'DO (mg/L)',
+          borderColor: 'green',
+          backgroundColor: 'rgba(0,255,0,0.1)',
+          data: doData,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: 'Time' }},
+          y: { beginAtZero: true, title: { display: true, text: 'DO (mg/L)' }}
+        }
       }
-      chart.update();
+    });
+
+    const tempChart = new Chart(document.getElementById('tempChart'), {
+      type: 'line',
+      data: {
+        labels: tempLabels,
+        datasets: [{
+          label: 'Temperature (°C)',
+          borderColor: 'red',
+          backgroundColor: 'rgba(255,0,0,0.1)',
+          data: tempData,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: 'Time' }},
+          y: { beginAtZero: true, title: { display: true, text: 'Temperature (°C)' }}
+        }
+      }
+    });
+
+    function sendCommand(cmd) {
+      db.ref("command").set(cmd)
+        .then(() => {
+          document.getElementById("statusMsg").textContent = "Working...";
+
+          if (cmd === 'all') {
+            // ล้างกราฟก่อนเริ่มใหม่
+            doLabels.length = 0;
+            doData.length = 0;
+            tempLabels.length = 0;
+            tempData.length = 0;
+            doChart.update();
+            tempChart.update();
+            startUpdating();
+          }
+
+          if (stopTimer) clearTimeout(stopTimer);
+          stopTimer = setTimeout(() => {
+            db.ref("command").set("idle")
+              .then(() => {
+                document.getElementById("statusMsg").textContent = "Completed ✅";
+                if (cmd === 'all') stopUpdating();
+              });
+          }, 360000); // 6 นาที
+        })
+        .catch((err) => {
+          document.getElementById("statusMsg").textContent = "Error sending command!";
+          console.error("Firebase Error:", err);
+        });
     }
 
-    // ฟังข้อมูลจาก Firebase
-    database.ref('DO').on('value', (snapshot) => {
-      const doValue = snapshot.val();
-      updateChart(doChart, doData, doValue);
-    });
+    function startUpdating() {
+      if (updateInterval) clearInterval(updateInterval);
+      updateInterval = setInterval(() => {
+        const now = new Date().toLocaleTimeString();
 
-    database.ref('Temperature').on('value', (snapshot) => {
-      const tempValue = snapshot.val();
-      updateChart(tempChart, tempData, tempValue);
-    });
+        db.ref("sensor/DO").once("value").then(snapshot => {
+          const val = snapshot.val();
+          doLabels.push(now);
+          doData.push(val);
+          if (doLabels.length > 30) {
+            doLabels.shift();
+            doData.shift();
+          }
+          doChart.update();
+        });
+
+        db.ref("sensor/Temperature").once("value").then(snapshot => {
+          const val = snapshot.val();
+          tempLabels.push(now);
+          tempData.push(val);
+          if (tempLabels.length > 30) {
+            tempLabels.shift();
+            tempData.shift();
+          }
+          tempChart.update();
+        });
+
+      }, 2000);
+    }
+
+    function stopUpdating() {
+      if (updateInterval) clearInterval(updateInterval);
+      updateInterval = null;
+    }
   </script>
+
 </body>
 </html>
