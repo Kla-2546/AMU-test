@@ -145,10 +145,10 @@
     <button onclick="sendCommand('reset')">Reset</button>
   </div>
 
-  <div id="statusMsg"></div>
+  <div id="statusMsg">Idle</div>
 
   <script>
-    // ใส่ config Firebase จริงของมึง
+    // 🔥 แทนที่ค่านี้ด้วย Firebase Config ของคุณเอง
     const firebaseConfig = {
   apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
   authDomain: "amutestv03.firebaseapp.com",
@@ -180,7 +180,7 @@
           label: 'DO (μ/L)',
           data: doData,
           borderColor: 'rgba(255, 99, 132, 1)',
-          backgroundColor: 'transparent', // ไม่มีพื้นที่ใต้เส้น
+          backgroundColor: 'transparent',
           tension: 0.3,
           fill: false,
           pointRadius: 0
@@ -212,7 +212,7 @@
           label: 'Temperature (°C)',
           data: tempData,
           borderColor: 'rgba(0, 123, 255, 1)',
-          backgroundColor: 'transparent', // ไม่มีพื้นที่ใต้เส้น
+          backgroundColor: 'transparent',
           tension: 0.3,
           fill: false,
           pointRadius: 0
@@ -260,7 +260,7 @@
 
     function startUpdating() {
       if (!updateTimer) {
-        updateData(); // อัพเดตทันที
+        updateData();
         updateTimer = setInterval(updateData, updateInterval);
       }
     }
@@ -290,24 +290,18 @@
               .then(() => {
                 document.getElementById("statusMsg").textContent = "Completed ✅";
                 if (cmd === 'all') stopUpdating();
-              })
-              .catch(err => {
-                document.getElementById("statusMsg").textContent = "Error resetting command!";
-                console.error("Firebase write error:", err);
               });
-          }, 360000); // 6 นาที (360000 ms)
+          }, 360000); // 6 นาที
         })
         .catch(err => {
           document.getElementById("statusMsg").textContent = "Error sending command!";
-          console.error("Firebase write error:", err);
+          console.error(err);
         });
     }
 
-    // Sync ทุกหน้าจอให้สถานะตรงกัน
     db.ref("command").on("value", snapshot => {
       const cmd = snapshot.val();
       const statusMsg = document.getElementById("statusMsg");
-
       switch (cmd) {
         case "all":
           statusMsg.textContent = "Running All...";
@@ -333,11 +327,9 @@
       }
     });
 
-    // Dark mode toggle
-    const themeToggleBtn = document.getElementById('themeToggle');
-    themeToggleBtn.addEventListener('click', () => {
+    document.getElementById('themeToggle').addEventListener('click', () => {
       document.body.classList.toggle('dark');
-      themeToggleBtn.textContent = document.body.classList.contains('dark') ? '☀️ Light Mode' : '🌙 Dark Mode';
+      themeToggle.textContent = document.body.classList.contains('dark') ? '☀️ Light Mode' : '🌙 Dark Mode';
     });
   </script>
 </body>
