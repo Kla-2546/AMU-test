@@ -3,9 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>Sensor Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
     :root {
       --bg: #f4f6f8;
@@ -147,7 +144,11 @@
 
   <div id="statusMsg">Idle</div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <script>
+    
     // 🔥 แทนที่ค่านี้ด้วย Firebase Config ของคุณเอง
     const firebaseConfig = {
   apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
@@ -159,6 +160,7 @@
   appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
   measurementId: "G-37ETDELEFH"
 };
+firebase.initializeApp(firebaseConfig);
     
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
@@ -172,6 +174,11 @@
         window.location.href = "login.html";
       }
     });
+    
+    function startApp() {
+      // ที่นี่ใส่ฟังก์ชันเริ่มต้นทั้งหมด เช่นโหลดกราฟ, ปุ่ม, Firebase listener
+      console.log("🚀 App Started");
+    }
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
