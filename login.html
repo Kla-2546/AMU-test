@@ -88,30 +88,31 @@
   appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
   measurementId: "G-37ETDELEFH"
 };
+    
   firebase.initializeApp(firebaseConfig);
+    
+  function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-    function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+    firebase.auth().signInWithEmailAndPassword(email, password)
+      .then(() => {
+        window.location.href = "index.html";
+      })
+      .catch((error) => {
+        document.getElementById("error").textContent = "❌ " + error.message;
+      });
+  }
 
-      firebase.auth().signInWithEmailAndPassword(email, password)
-        .then(() => {
-          window.location.href = "index.html";
-        })
-        .catch((error) => {
-          document.getElementById("error").textContent = "❌ " + error.message;
-        });
-    }
-
-    function guestLogin() {
-      firebase.auth().signInAnonymously()
-        .then(() => {
-          window.location.href = "index.html";
-        })
-        .catch((error) => {
-          document.getElementById("error").textContent = "❌ " + error.message;
-        });
-    }
+  function guestLogin() {
+    firebase.auth().signInAnonymously()
+      .then(() => {
+        window.location.href = "index.html";
+      })
+      .catch((error) => {
+        document.getElementById("error").textContent = "❌ " + error.message;
+      });
+  }
   </script>
 
 </body>
