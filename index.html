@@ -7,7 +7,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    /* โค้ด CSS เหมือนเดิมไม่เปลี่ยน */
     :root {
       --bg: #f4f6f8;
       --card-bg: #fff;
@@ -17,7 +16,6 @@
       --btn-bg: #007bff;
       --btn-text: white;
     }
-
     body.dark {
       --bg: #1e1e1e;
       --card-bg: #2b2b2b;
@@ -27,7 +25,6 @@
       --btn-bg: #0d6efd;
       --btn-text: #fff;
     }
-
     body {
       font-family: Arial, sans-serif;
       background-color: var(--bg);
@@ -37,11 +34,9 @@
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
     }
-
     h1 {
       margin-bottom: 30px;
     }
-
     .value-cards {
       display: flex;
       justify-content: center;
@@ -49,7 +44,6 @@
       margin-bottom: 30px;
       flex-wrap: wrap;
     }
-
     .card {
       background: var(--card-bg);
       padding: 20px 40px;
@@ -59,24 +53,20 @@
       flex: 1 1 150px;
       max-width: 250px;
     }
-
     .label {
       font-size: 1.2em;
       color: var(--subtext);
     }
-
     .value {
       font-size: 2.5em;
       margin-top: 10px;
       font-weight: bold;
     }
-
     .chart-container {
       width: 90vw;
       max-width: 900px;
       margin: 0 auto 40px;
     }
-
     canvas {
       width: 100% !important;
       height: 400px !important;
@@ -85,11 +75,9 @@
       box-shadow: 0 2px 10px var(--shadow);
       padding: 10px;
     }
-
     .buttons {
       margin-bottom: 20px;
     }
-
     button {
       font-size: 1em;
       padding: 12px 25px;
@@ -102,18 +90,15 @@
       box-shadow: 0 4px 6px rgba(0, 123, 255, 0.4);
       transition: background-color 0.3s;
     }
-
     button:hover {
       background-color: #0056b3;
     }
-
     #statusMsg {
       font-size: 1.1em;
       margin-top: 15px;
       min-height: 1.5em;
       font-weight: 600;
     }
-
     #themeToggle {
       position: fixed;
       top: 20px;
@@ -163,10 +148,10 @@
   <div id="statusMsg"></div>
 
   <script>
-    // ใส่ config Firebase ของมึงตรงนี้ให้ครบจัดๆ
+    // ใส่ config Firebase จริงของมึง
     const firebaseConfig = {
-      apiKey: "AIzaSyDUMMY1234567890abcdefghijklmno",           // ใส่ apiKey จริงมึงนะ
-      authDomain: "amu-web.firebaseapp.com",                   // ตัวอย่างให้
+      apiKey: "AIzaSyDUMMY1234567890abcdefghijklmno",
+      authDomain: "amu-web.firebaseapp.com",
       databaseURL: "https://amu-web-default-rtdb.asia-southeast1.firebasedatabase.app/",
       projectId: "amu-web",
       storageBucket: "amu-web.appspot.com",
@@ -194,7 +179,7 @@
           label: 'DO (mg/L)',
           data: doData,
           borderColor: 'rgba(255, 99, 132, 1)',
-          backgroundColor: 'rgba(255, 99, 132, 0.1)',
+          backgroundColor: 'transparent', // ไม่มีพื้นที่ใต้เส้น
           tension: 0.3,
           fill: false,
           pointRadius: 0
@@ -226,7 +211,7 @@
           label: 'Temperature (°C)',
           data: tempData,
           borderColor: 'rgba(0, 123, 255, 1)',
-          backgroundColor: 'rgba(0, 123, 255, 0.1)',
+          backgroundColor: 'transparent', // ไม่มีพื้นที่ใต้เส้น
           tension: 0.3,
           fill: false,
           pointRadius: 0
@@ -253,7 +238,8 @@
         if (val !== null) {
           document.getElementById("doValue").textContent = `${val} mg/L`;
           const now = new Date().toLocaleTimeString();
-          doLabels.push(now); doData.push(val);
+          doLabels.push(now);
+          doData.push(val);
           if (doLabels.length > 20) { doLabels.shift(); doData.shift(); }
           doChart.update('none');
         }
@@ -263,7 +249,8 @@
         if (val !== null) {
           document.getElementById("tempValue").textContent = `${val} °C`;
           const now = new Date().toLocaleTimeString();
-          tempLabels.push(now); tempData.push(val);
+          tempLabels.push(now);
+          tempData.push(val);
           if (tempLabels.length > 20) { tempLabels.shift(); tempData.shift(); }
           tempChart.update('none');
         }
@@ -285,7 +272,6 @@
     }
 
     function sendCommand(cmd) {
-      // เขียนคำสั่งไป Firebase
       db.ref("command").set(cmd)
         .then(() => {
           document.getElementById("statusMsg").textContent = "Working...";
@@ -308,7 +294,7 @@
                 document.getElementById("statusMsg").textContent = "Error resetting command!";
                 console.error("Firebase write error:", err);
               });
-          }, 360000); // รอ 3 วินาที รีเซ็ตเป็น idle
+          }, 360000); // 6 นาที (360000 ms)
         })
         .catch(err => {
           document.getElementById("statusMsg").textContent = "Error sending command!";
@@ -316,15 +302,41 @@
         });
     }
 
+    // Sync ทุกหน้าจอให้สถานะตรงกัน
+    db.ref("command").on("value", snapshot => {
+      const cmd = snapshot.val();
+      const statusMsg = document.getElementById("statusMsg");
+
+      switch (cmd) {
+        case "all":
+          statusMsg.textContent = "Running All...";
+          startUpdating();
+          break;
+        case "wash":
+          statusMsg.textContent = "Washing...";
+          stopUpdating();
+          break;
+        case "wipe":
+          statusMsg.textContent = "Wiping...";
+          stopUpdating();
+          break;
+        case "reset":
+          statusMsg.textContent = "Resetting...";
+          stopUpdating();
+          break;
+        case "idle":
+        default:
+          statusMsg.textContent = "Idle";
+          stopUpdating();
+          break;
+      }
+    });
+
     // Dark mode toggle
     const themeToggleBtn = document.getElementById('themeToggle');
     themeToggleBtn.addEventListener('click', () => {
       document.body.classList.toggle('dark');
-      if (document.body.classList.contains('dark')) {
-        themeToggleBtn.textContent = '☀️ Light Mode';
-      } else {
-        themeToggleBtn.textContent = '🌙 Dark Mode';
-      }
+      themeToggleBtn.textContent = document.body.classList.contains('dark') ? '☀️ Light Mode' : '🌙 Dark Mode';
     });
   </script>
 </body>
