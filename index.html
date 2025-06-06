@@ -282,7 +282,7 @@
       stopTimer = null;
     }
 
-    // *** แก้ตรงนี้ ให้เขียนคำสั่งลง Firebase แทน fetch ***
+    // *** ฟังก์ชันส่งคำสั่ง พร้อมเซ็ต idle กลับอัตโนมัติ ***
     function sendCommand(cmd) {
       db.ref("command/current").set(cmd)
         .then(() => {
@@ -291,8 +291,15 @@
           else stopUpdating();
 
           setTimeout(() => {
-            document.getElementById("statusMsg").textContent = "Completed ✅";
-          }, 3000);
+            db.ref("command/current").set("idle")
+              .then(() => {
+                document.getElementById("statusMsg").textContent = "Completed ✅";
+              })
+              .catch(err => {
+                document.getElementById("statusMsg").textContent = "Error resetting command!";
+                console.error("Firebase write error:", err);
+              });
+          }, 3000); // รอ 3 วินาที แล้วรีเซ็ต
         })
         .catch(err => {
           document.getElementById("statusMsg").textContent = "Error sending command!";
