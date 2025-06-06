@@ -270,36 +270,44 @@
     }
 
     function startUpdating() {
-      updateData();
-      updateTimer = setInterval(updateData, updateInterval);
-      stopTimer = setTimeout(stopUpdating, 15000);
+      if (!updateTimer) {
+        updateData(); // อัพเดตทันที
+        updateTimer = setInterval(updateData, updateInterval);
+      }
     }
 
     function stopUpdating() {
-      clearInterval(updateTimer);
-      clearTimeout(stopTimer);
-      updateTimer = null;
-      stopTimer = null;
+      if (updateTimer) {
+        clearInterval(updateTimer);
+        updateTimer = null;
+      }
     }
 
-    // *** ฟังก์ชันส่งคำสั่ง พร้อมเซ็ต idle กลับอัตโนมัติ ***
     function sendCommand(cmd) {
-      db.ref("command/current").set(cmd)
+      // เขียนคำสั่งไป Firebase
+      db.ref("command").set(cmd)
         .then(() => {
           document.getElementById("statusMsg").textContent = "Working...";
-          if (cmd === 'all') startUpdating();
-          else stopUpdating();
-
-          setTimeout(() => {
-            db.ref("command/current").set("idle")
+          if (cmd === 'all') {
+            startUpdating();
+          } else {
+            stopUpdating();
+          }
+          if (stopTimer) {
+            clearTimeout(stopTimer);
+            stopTimer = null;
+          }
+          stopTimer = setTimeout(() => {
+            db.ref("command").set("idle")
               .then(() => {
                 document.getElementById("statusMsg").textContent = "Completed ✅";
+                if (cmd === 'all') stopUpdating();
               })
               .catch(err => {
                 document.getElementById("statusMsg").textContent = "Error resetting command!";
                 console.error("Firebase write error:", err);
               });
-          }, 360,000); // รอ 3 วินาที แล้วรีเซ็ต
+          }, 3000); // รอ 3 วินาที รีเซ็ตเป็น idle
         })
         .catch(err => {
           document.getElementById("statusMsg").textContent = "Error sending command!";
@@ -307,19 +315,16 @@
         });
     }
 
-    // Theme toggle โคตรเดิม
-    const themeToggle = document.getElementById("themeToggle");
-    const prefersDark = localStorage.getItem("theme") === "dark";
-    if (prefersDark) {
-      document.body.classList.add("dark");
-      themeToggle.textContent = "☀️ Light Mode";
-    }
-    themeToggle.onclick = () => {
-      document.body.classList.toggle("dark");
-      const isDark = document.body.classList.contains("dark");
-      themeToggle.textContent = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
-      localStorage.setItem("theme", isDark ? "dark" : "light");
-    };
+    // Dark mode toggle
+    const themeToggleBtn = document.getElementById('themeToggle');
+    themeToggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      if (document.body.classList.contains('dark')) {
+        themeToggleBtn.textContent = '☀️ Light Mode';
+      } else {
+        themeToggleBtn.textContent = '🌙 Dark Mode';
+      }
+    });
   </script>
 </body>
 </html>
