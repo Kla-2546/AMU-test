@@ -1,17 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Login | AMU</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  
-
   <style>
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: Arial, sans-serif;
       background: linear-gradient(135deg, #2196f3, #00bcd4);
       height: 100vh;
       margin: 0;
@@ -19,17 +17,15 @@
       align-items: center;
       justify-content: center;
     }
-
     .login-container {
-      background-color: #fff;
+      background: #fff;
       padding: 2rem;
       border-radius: 10px;
       box-shadow: 0 0 20px rgba(0,0,0,0.2);
       text-align: center;
-      width: 90%;
       max-width: 400px;
+      width: 90%;
     }
-
     input {
       width: 100%;
       padding: 10px;
@@ -37,10 +33,9 @@
       border-radius: 6px;
       border: 1px solid #ccc;
     }
-
     button {
-      background-color: #2196f3;
-      color: white;
+      background: #2196f3;
+      color: #fff;
       padding: 10px 20px;
       border: none;
       border-radius: 6px;
@@ -48,81 +43,77 @@
       cursor: pointer;
       font-size: 16px;
     }
-
     button:hover {
-      background-color: #1976d2;
+      background: #1976d2;
     }
-
     .error {
       color: red;
       margin: 10px 0;
-    }
-
-    hr {
-      margin: 20px 0;
     }
   </style>
 </head>
 <body>
 
-<div class="login-container">
-  <h2>เข้าสู่ระบบ</h2>
-  <div class="error" id="error"></div>
-  <input type="email" id="email" placeholder="Email" />
-  <input type="password" id="password" placeholder="Password" />
-  <button onclick="login()">เข้าสู่ระบบ</button>
-  <hr>
-  <button onclick="login()">เข้าสู่ระบบแบบผู้เยี่ยมชม (Guest)</button>
-</div>
+  <div class="login-container">
+    <h2>เข้าสู่ระบบ</h2>
+    <div class="error" id="error"></div>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">เข้าสู่ระบบ</button>
+    <hr>
+    <button onclick="guestLogin()">เข้าสู่ระบบแบบผู้เยี่ยมชม (Guest)</button>
+  </div>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
-    authDomain: "amutestv03.firebaseapp.com",
-    databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "amutestv03",
-    storageBucket: "amutestv03.appspot.com",
-    messagingSenderId: "879107687622",
-    appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
-    measurementId: "G-37ETDELEFH"
-  };
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
+      authDomain: "amutestv03.firebaseapp.com",
+      databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "amutestv03",
+      storageBucket: "amutestv03.appspot.com",
+      messagingSenderId: "879107687622",
+      appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
+      measurementId: "G-37ETDELEFH"
+    };
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-  function login() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
 
-    auth.signInWithEmailAndPassword(email, password)
-  .then((userCredential) => {
-    const uid = userCredential.user.uid;
-    const roleRef = db.ref("roles/" + uid);
+      firebase.auth().signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          const uid = userCredential.user.uid;
 
-    roleRef.once("value").then(snapshot => {
-      if (snapshot.exists()) {
-        const role = snapshot.val();
-        if (role === "admin") {
-          window.location.href = "admin.html";
-        } else if (role === "user") {
-          window.location.href = "login.html";
-        } else {
-          document.getElementById("error").textContent = "❌ ไม่มีสิทธิ์เข้าถึงระบบ";
-        }
-      } else {
-        // ➕ ถ้ายังไม่มี role -> เพิ่มเป็น "user" อัตโนมัติ
-        roleRef.set("user").then(() => {
-          window.location.href = "login.html";
+          // อ่าน role จาก Database
+          return db.ref("roles/" + uid).once("value").then(snapshot => {
+            const role = snapshot.val();
+            if (role === "admin") {
+              window.location.href = "admin.html";
+            } else {
+              window.location.href = "login.html";
+            }
+          });
+        })
+        .catch(error => {
+          console.error(error);
+          document.getElementById("error").textContent = "❌ " + error.message;
         });
-      }
-    });
-  })
-  .catch((error) => {
-    document.getElementById("error").textContent = "❌ " + error.message;
-  });
-    
-</script>
+    }
+
+    function guestLogin() {
+      firebase.auth().signInAnonymously()
+        .then(() => {
+          window.location.href = "user.html";
+        })
+        .catch(error => {
+          console.error(error);
+          document.getElementById("error").textContent = "❌ " + error.message;
+        });
+    }
+  </script>
 
 </body>
 </html>
