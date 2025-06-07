@@ -326,7 +326,19 @@
           console.error(err);
         });
     }
+      function updateTimestamp() {
+        secondsPassed++;
+        const minutes = Math.floor(secondsPassed / 60);
+        const seconds = secondsPassed % 60;
+        const formattedTime = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+        document.getElementById("timer").textContent = `You have been here for ${formattedTime}`;
+    }
 
+  setInterval(updateTimer, 1000);
+  updateTimestamp();
+
+
+    
     db.ref("command").on("value", snapshot => {
       const cmd = snapshot.val();
       const statusMsg = document.getElementById("statusMsg");
@@ -354,17 +366,6 @@
           break;
       }
     });
-
-  function updateTimer() {
-      secondsPassed++;
-      const minutes = Math.floor(secondsPassed / 60);
-      const seconds = secondsPassed % 60;
-      const formattedTime = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
-      document.getElementById("timer").textContent = `You have been here for ${formattedTime}`;
-    }
-
-  setInterval(updateTimer, 1000);
-  updateTimestamp();
     
 
     document.getElementById('themeToggle').addEventListener('click', () => {
