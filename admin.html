@@ -1,471 +1,149 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <title>Sensor Dashboard</title>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    :root {
-      --bg: #f4f6f8;
-      --card-bg: #fff;
-      --text: #222;
-      --subtext: #666;
-      --shadow: rgba(0, 0, 0, 0.1);
-      --btn-bg: #007bff;
-      --btn-text: white;
-    }
-    body.dark {
-      --bg: #1e1e1e;
-      --card-bg: #2b2b2b;
-      --text: #eaeaea;
-      --subtext: #aaa;
-      --shadow: rgba(255, 255, 255, 0.05);
-      --btn-bg: #0d6efd;
-      --btn-text: #fff;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    h1 {
-      margin-bottom: 30px;
-    }
-    .value-cards {
-      display: flex;
-      justify-content: center;
-      gap: 50px;
-      margin-bottom: 30px;
-      flex-wrap: wrap;
-    }
-    .card {
-      background: var(--card-bg);
-      padding: 20px 40px;
-      border-radius: 15px;
-      box-shadow: 0 4px 12px var(--shadow);
-      min-width: 150px;
-      flex: 1 1 150px;
-      max-width: 250px;
-    }
-    .label {
-      font-size: 1.2em;
-      color: var(--subtext);
-    }
-    .value {
-      font-size: 2.5em;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    .chart-container {
-      width: 90vw;
-      max-width: 900px;
-      margin: 0 auto 40px;
-    }
-    canvas {
-      width: 100% !important;
-      height: 400px !important;
-      background: var(--card-bg);
-      border-radius: 10px;
-      box-shadow: 0 2px 10px var(--shadow);
-      padding: 10px;
-    }
-    .buttons {
-      margin-bottom: 20px;
-    }
-    button {
-      font-size: 1em;
-      padding: 12px 25px;
-      margin: 8px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      background-color: var(--btn-bg);
-      color: var(--btn-text);
-      box-shadow: 0 4px 6px rgba(0, 123, 255, 0.4);
-      transition: background-color 0.3s;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    #statusMsg {
-      font-size: 1.1em;
-      margin-top: 15px;
-      min-height: 1.5em;
-      font-weight: 600;
-    }
-    #themeToggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: transparent;
-      border: 2px solid var(--btn-bg);
-      color: var(--btn-bg);
-      border-radius: 25px;
-      padding: 8px 16px;
-      cursor: pointer;
-      font-weight: bold;
-      user-select: none;
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    h1, h2 { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f0f0f0; }
+    canvas { margin-top: 40px; }
   </style>
 </head>
 <body>
-  <h1>🌐 Real-Time Sensor Dashboard & Control</h1>
+  <h1>Admin Dashboard</h1>
+  <p>ยินดีต้อนรับ <span id="userName"></span></p>
 
-  <button id="themeToggle">🌙 Dark Mode</button>
-  
-  <div id="userStatus" style="position: fixed; top: 20px; left: 20px; font-weight: bold;"></div>
-  
-  <div style="position: fixed; top: 50px; left: 30px; font-weight: bold;" id="timer">
-  🕓login time: 0:00 minutes
-  </div>
+  <h2>Real-time Graph (DO & Temperature)</h2>
+  <canvas id="chart"></canvas>
 
-  <div class="value-cards">
-    <div class="card">
-      <div class="label">💧 Dissolved Oxygen (DO)</div>
-      <div class="value" id="doValue">-- μg/L</div>
-    </div>
-    <div class="card">
-      <div class="label">🌡️ Temperature</div>
-      <div class="value" id="tempValue">-- °C</div>
-    </div>
-  </div>
-
-  <div class="chart-container">
-    <canvas id="doChart"></canvas>
-  </div>
-
-  <div class="chart-container">
-    <canvas id="tempChart"></canvas>
-  </div>
-
-  <div class="buttons">
-    <button onclick="sendCommand('all')">Run All</button>
-    <button onclick="sendCommand('wash')">Wash</button>
-    <button onclick="sendCommand('wipe')">Wipe</button>
-    <button onclick="sendCommand('reset')">Reset</button>
-  </div>
-
-  <div id="statusMsg">Idle</div>
+  <h2>Activity Log</h2>
+  <button onclick="exportCSV()">Export CSV</button>
+  <table id="logTable">
+    <thead>
+      <tr>
+        <th>เวลา</th>
+        <th>ชื่อผู้ใช้</th>
+        <th>คำสั่ง</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
-    
-    // 🔥 แทนที่ค่านี้ด้วย Firebase Config ของคุณเอง
     const firebaseConfig = {
-  apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
-  authDomain: "amutestv03.firebaseapp.com",
-  databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "amutestv03",
-  storageBucket: "amutestv03.firebasestorage.app",
-  messagingSenderId: "879107687622",
-  appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
-  measurementId: "G-37ETDELEFH"
-};
- firebase.initializeApp(firebaseConfig);   
- firebase.auth().onAuthStateChanged((user) => {
-  const userStatusEl = document.getElementById("userStatus");
-  if (user) {
-    const uid = user.uid;
-    firebase.database().ref(`users/${uid}/role`).once("value")
-      .then(snapshot => {
-        const role = snapshot.val();
-        if (role === "admin") {
-          userStatusEl.textContent = "👤 Admin";
-        } 
-      })
-  }
-});
-    
-      function logout() {
-    firebase.auth().signOut().then(() => {
-      window.location.href = "index.html";
-    });
-  }
-  
-    const db = firebase.database();
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-    let updateInterval = 5000;
-    let updateTimer = null;
-    let stopTimer = null;
-    let secondsPassed = 0;
-
-    const doLabels = [], doData = [], tempLabels = [], tempData = [];
-
-    const doCtx = document.getElementById('doChart').getContext('2d');
-    const tempCtx = document.getElementById('tempChart').getContext('2d');
-
-    const doChart = new Chart(doCtx, {
-      type: 'line',
-      data: {
-        labels: doLabels,
-        datasets: [{
-          label: 'DO (μg/L)',
-          data: doData,
-          borderColor: 'rgba(255, 99, 132, 1)',
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          fill: false,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        animation: { duration: 0 },
-        scales: {
-          y: {
-            min: 0,
-            max: 12000,
-            ticks: {
-              stepSize: 500,
-              callback: val => val.toLocaleString()
-            },
-            grid: { color: 'rgba(180,180,180,0.2)' }
-          }
+    let chart;
+    function drawChart() {
+      const ctx = document.getElementById("chart").getContext("2d");
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'DO', data: [], borderColor: 'blue', fill: false },
+            { label: 'Temperature', data: [], borderColor: 'red', fill: false }
+          ]
         },
-        plugins: { legend: { display: true } }
-      }
-    });
-
-    const tempChart = new Chart(tempCtx, {
-      type: 'line',
-      data: {
-        labels: tempLabels,
-        datasets: [{
-          label: 'Temperature (°C)',
-          data: tempData,
-          borderColor: 'rgba(0, 123, 255, 1)',
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          fill: false,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        animation: { duration: 0 },
-        scales: {
-          y: {
-            min: 0,
-            max: 100,
-            ticks: { stepSize: 10 },
-            grid: { color: 'rgba(180,180,180,0.2)' }
-          }
-        },
-        plugins: { legend: { display: true } }
-      }
-    });
-
-    function updateData() {
-      db.ref("sensor/do").once("value").then(snapshot => {
-        const val = snapshot.val();
-        if (val !== null) {
-          document.getElementById("doValue").textContent = `${val} μg/L`;
-          const now = new Date().toLocaleTimeString();
-          doLabels.push(now);
-          doData.push(val);
-          if (doLabels.length > 20) { doLabels.shift(); doData.shift(); }
-          doChart.update('none');
-        }
+        options: { responsive: true, maintainAspectRatio: false }
       });
-      db.ref("sensor/temp").once("value").then(snapshot => {
-        const val = snapshot.val();
-        if (val !== null) {
-          document.getElementById("tempValue").textContent = `${val} °C`;
+    }
+
+    function updateChart(time, doVal, tempVal) {
+      if (chart.data.labels.length > 50) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+        chart.data.datasets[1].data.shift();
+      }
+      chart.data.labels.push(time);
+      chart.data.datasets[0].data.push(doVal);
+      chart.data.datasets[1].data.push(tempVal);
+      chart.update();
+    }
+
+    function listenRealtimeData() {
+      firebase.database().ref("realtime").on("value", snapshot => {
+        const data = snapshot.val();
+        if (data) {
           const now = new Date().toLocaleTimeString();
-          tempLabels.push(now);
-          tempData.push(val);
-          if (tempLabels.length > 20) { tempLabels.shift(); tempData.shift(); }
-          tempChart.update('none');
+          updateChart(now, data.DO, data.Temp);
         }
       });
     }
 
-    function startUpdating() {
-      if (!updateTimer) {
-        updateData();
-        updateTimer = setInterval(updateData, updateInterval);
-      }
-    }
-
-    function stopUpdating() {
-      if (updateTimer) {
-        clearInterval(updateTimer);
-        updateTimer = null;
-      }
-    }
-
-    function sendCommand(cmd) {
-      db.ref("command").set(cmd)
-        .then(() => {
-          document.getElementById("statusMsg").textContent = "Working...";
-          if (cmd === 'all') {
-            startUpdating();
-          } else {
-            stopUpdating();
+    function loadActivityLog() {
+      const tableBody = document.querySelector("#logTable tbody");
+      firebase.database().ref("activityLog").once("value")
+        .then(snapshot => {
+          tableBody.innerHTML = "";
+          const log = snapshot.val();
+          if (log) {
+            const entries = Object.entries(log).sort((a, b) => b[0] - a[0]);
+            entries.forEach(([key, data]) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${data.time}</td>
+                <td>${data.displayName}</td>
+                <td>${data.command.toUpperCase()}</td>
+              `;
+              tableBody.appendChild(row);
+            });
           }
-          if (stopTimer) {
-            clearTimeout(stopTimer);
-            stopTimer = null;
-          }
-          stopTimer = setTimeout(() => {
-            db.ref("command").set("idle")
-              .then(() => {
-                document.getElementById("statusMsg").textContent = "Completed ✅";
-                if (cmd === 'all') stopUpdating();
-              });
-          }, 360000); // 6 นาที
-        })
-        .catch(err => {
-          document.getElementById("statusMsg").textContent = "Error sending command!";
-          console.error(err);
         });
     }
-    function updateSessionTimer() {
-        secondsPassed++;
-        const minutes = Math.floor(secondsPassed / 60);
-        const seconds = secondsPassed % 60;
-        const formattedTime = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
-        document.getElementById("timer").textContent = `🕓login time${formattedTime}minutes`;
+
+    function exportCSV() {
+      firebase.database().ref("activityLog").once("value")
+        .then(snapshot => {
+          const log = snapshot.val();
+          if (!log) return alert("ไม่มีข้อมูล log");
+
+          let csv = "เวลา,ชื่อผู้ใช้,คำสั่ง\n";
+          Object.values(log).forEach(data => {
+            csv += `${data.time},${data.displayName},${data.command.toUpperCase()}\n`;
+          });
+
+          const blob = new Blob([csv], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "activity_log.csv";
+          a.click();
+        });
     }
 
-    setInterval(updateSessionTimer, 1000);
-    updateSessionTimer();
-
-
-    
-    db.ref("command").on("value", snapshot => {
-      const cmd = snapshot.val();
-      const statusMsg = document.getElementById("statusMsg");
-      switch (cmd) {
-        case "all":
-          statusMsg.textContent = "Running All...";
-          startUpdating();
-          break;
-        case "wash":
-          statusMsg.textContent = "Washing...";
-          stopUpdating();
-          break;
-        case "wipe":
-          statusMsg.textContent = "Wiping...";
-          stopUpdating();
-          break;
-        case "reset":
-          statusMsg.textContent = "Resetting...";
-          stopUpdating();
-          break;
-        case "idle":
-        default:
-          statusMsg.textContent = "Idle";
-          stopUpdating();
-          break;
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        firebase.database().ref(`users/${user.uid}/role`).once("value")
+          .then(snap => {
+            if (snap.val() === "admin") {
+              document.getElementById("userName").innerText = user.displayName || "(Admin)";
+              drawChart();
+              listenRealtimeData();
+              loadActivityLog();
+            } else {
+              alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
+            }
+          });
+      } else {
+        window.location.href = "/login.html";
       }
     });
-    
-
-    document.getElementById('themeToggle').addEventListener('click', () => {
-      document.body.classList.toggle('dark');
-      themeToggle.textContent = document.body.classList.contains('dark') ? '☀️ Light Mode' : '🌙 Dark Mode';
-      
-    });
   </script>
-
-<hr style="margin:40px 0;">
-<h2>📋 Admin Activity Log (Real-Time)</h2>
-<table id="activityLogTable" style="width:100%; max-width:900px; margin: 0 auto 40px; border-collapse: collapse; font-family: monospace;">
-  <thead style="background:#007bff; color:#fff;">
-    <tr>
-      <th style="padding:8px; border:1px solid #ccc;">Timestamp</th>
-      <th style="padding:8px; border:1px solid #ccc;">User</th>
-      <th style="padding:8px; border:1px solid #ccc;">Command</th>
-      <th style="padding:8px; border:1px solid #ccc;">Graph Active</th>
-    </tr>
-  </thead>
-  <tbody id="activityLogBody" style="background: var(--card-bg); color: var(--text);"></tbody>
-</table>
-
-<script>
-// --- ฟังก์ชันเก็บ log กิจกรรมลง Firebase
-function logActivity(userEmail, command, graphActive) {
-  const timestamp = new Date().toISOString();
-  const logEntry = {
-    timestamp,
-    user: userEmail || "admin",
-    command,
-    graphActive
-  };
-  db.ref("activityLogs").push(logEntry).catch(console.error);
-}
-
-// --- ฟังก์ชันเพิ่มแถวในตาราง log realtime
-function addLogRow(log) {
-  const tbody = document.getElementById("activityLogBody");
-  const tr = document.createElement("tr");
-
-  const timeTd = document.createElement("td");
-  timeTd.textContent = new Date(log.timestamp).toLocaleString();
-  timeTd.style.padding = "8px";
-  timeTd.style.border = "1px solid #ccc";
-
-  const userTd = document.createElement("td");
-  userTd.textContent = log.user;
-  userTd.style.padding = "8px";
-  userTd.style.border = "1px solid #ccc";
-
-  const cmdTd = document.createElement("td");
-  cmdTd.textContent = log.command;
-  cmdTd.style.padding = "8px";
-  cmdTd.style.border = "1px solid #ccc";
-
-  const graphTd = document.createElement("td");
-  graphTd.textContent = log.graphActive ? "Yes" : "No";
-  graphTd.style.padding = "8px";
-  graphTd.style.border = "1px solid #ccc";
-
-  tr.appendChild(timeTd);
-  tr.appendChild(userTd);
-  tr.appendChild(cmdTd);
-  tr.appendChild(graphTd);
-
-  tbody.prepend(tr);
-
-  // เก็บแค่ 50 แถวล่าสุด ไม่งั้นเว็บจะหน่วง
-  if (tbody.children.length > 50) {
-    tbody.removeChild(tbody.lastChild);
-  }
-}
-
-// --- เก็บ user ปัจจุบันสำหรับ log
-let currentUserEmail = null;
-firebase.auth().onAuthStateChanged((user) => {
-  if (user) {
-    currentUserEmail = user.isAnonymous ? "Guest" : user.email;
-  } else {
-    currentUserEmail = null;
-  }
-});
-
-// --- ฟังคำสั่งจาก Firebase /command แล้วเก็บ log และแสดงผล
-db.ref("command").on("value", snapshot => {
-  const cmd = snapshot.val();
-  if (!cmd) return;
-
-  const graphActive = (cmd === "all");
-  logActivity(currentUserEmail, cmd, graphActive);
-});
-
-// --- ดึง log ล่าสุด 50 รายการมาแสดง realtime
-db.ref("activityLogs").limitToLast(50).on("child_added", snapshot => {
-  const log = snapshot.val();
-  if (!log) return;
-  addLogRow(log);
-});
-</script>
-
 </body>
 </html>
