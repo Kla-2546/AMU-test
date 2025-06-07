@@ -314,7 +314,7 @@
   const timestamp = new Date().toISOString();
 
   // 🔐 บันทึก Activity Log
-  db.ref("activityLog").push({
+  db.ref("logs").push({
     uid: uid,
     command: cmd,
     timestamp: timestamp
