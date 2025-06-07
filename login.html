@@ -172,7 +172,7 @@
   const userStatusEl = document.getElementById("userStatus");
   if (user) {
     const uid = user.uid;
-    firebase.database().ref(`users/${uid}/role`).once("value")
+    firebase.database().ref(`users/${uid}/roles`).once("value")
       .then(snapshot => {
         const role = snapshot.val();
         if (role === "admin") {
