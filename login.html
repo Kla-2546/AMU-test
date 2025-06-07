@@ -1,4 +1,4 @@
-0<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -322,11 +322,13 @@
     function sendCommand(cmd) {
   const user = firebase.auth().currentUser;
   const uid = user ? user.uid : "unknown";
-  const timestamp = new Date().toLocaleTimeString();
+  const displayName = user.displayName || "guste";
+  const timestamp = now.toLocaleString(),
       
   // บันทึก Activity Log
   db.ref("logs").push({
     uid: uid,
+    displayName: displayName,
     command: cmd,
     timestamp: timestamp
   });
