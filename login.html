@@ -310,8 +310,8 @@
 
     function sendCommand(cmd) {
   const user = firebase.auth().currentUser;
-  const uid = user ? user.uid : "unknown";
-  const timestamp = new Date().toISOString();
+  const uid = user ? user.uid : "guest";
+  const timestamp = now.toLocaleString(),
 
   // 🔐 บันทึก Activity Log
   db.ref("logs").push({
@@ -352,6 +352,16 @@
 
     setInterval(updateSessionTimer, 1000);
     updateSessionTimer();
+    
+       function listenRealtimeData() {
+      firebase.database().ref("realtime").on("value", snapshot => {
+        const data = snapshot.val();
+        if (data) {
+          const now = new Date().toLocaleTimeString();
+          updateChart(now, data.DO, data.Temp);
+        }
+      });
+    }
 
 
     
