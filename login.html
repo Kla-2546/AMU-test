@@ -119,6 +119,7 @@
   <h1>🌐 Real-Time Sensor Dashboard & Control</h1>
 
   <button id="themeToggle">🌙 Dark Mode</button>
+  <div id="userStatus" style="position: fixed; top: 20px; left: 20px; font-weight: bold;"></div>
 
   <div class="value-cards">
     <div class="card">
@@ -163,17 +164,20 @@
 };
     firebase.initializeApp(firebaseConfig);   
     firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        if (user.isAnonymous) {
-          console.log("🔓 Logged in as Guest");
-        } else {
-          console.log("✅ Logged in as:", user.email);
-        }
-      } else {
-        console.warn("⛔ No user logged in, redirecting...");
-        window.location.href = "login.html";
-      }
-    });
+  const userStatusEl = document.getElementById("userStatus");
+  if (user) {
+    if (user.isAnonymous) {
+      console.log("🔓 Logged in as Guest");
+      userStatusEl.textContent = "👤 Guest Mode";
+    } else {
+      console.log("✅ Logged in as:", user.email);
+      userStatusEl.textContent = `👤 ${user.email}`;
+    }
+  } else {
+    console.warn("⛔ No user logged in, redirecting...");
+    window.location.href = "login.html";
+  }
+});
 
       function logout() {
     firebase.auth().signOut().then(() => {
@@ -350,6 +354,7 @@
     document.getElementById('themeToggle').addEventListener('click', () => {
       document.body.classList.toggle('dark');
       themeToggle.textContent = document.body.classList.contains('dark') ? '☀️ Light Mode' : '🌙 Dark Mode';
+      
     });
   </script>
 </body>
