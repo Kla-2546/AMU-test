@@ -127,7 +127,7 @@
     }
 
     function exportCSV() {
-      firebase.database().ref("activityLog").once("value")
+      firebase.database().ref("logs").once("value")
         .then(snapshot => {
           const log = snapshot.val();
           if (!log) return alert("ไม่มีข้อมูล log");
