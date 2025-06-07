@@ -96,36 +96,32 @@
     const password = document.getElementById('password').value;
 
     auth.signInWithEmailAndPassword(email, password)
-      .then((userCredential) => {
-        const uid = userCredential.user.uid;
+  .then((userCredential) => {
+    const uid = userCredential.user.uid;
+    const roleRef = db.ref("roles/" + uid);
 
-        // ตรวจสอบ role
-        db.ref("roles/" + uid).once("value")
-          .then(snapshot => {
-            const role = snapshot.val();
-            if (role === "admin") {
-              window.location.href = "admin.html";
-            } else if (role === "user") {
-              window.location.href = "login.html";
-            } else {
-              document.getElementById("error").textContent = "❌ ไม่มีสิทธิ์เข้าถึงระบบ";
-            }
-          });
-      })
-      .catch((error) => {
-        document.getElementById("error").textContent = "❌ " + error.message;
-      });
-  }
-
-  function guestLogin() {
-    auth.signInAnonymously()
-      .then(() => {
-        window.location.href = "login.html";
-      })
-      .catch((error) => {
-        document.getElementById("error").textContent = "❌ " + error.message;
-      });
-  }
+    roleRef.once("value").then(snapshot => {
+      if (snapshot.exists()) {
+        const role = snapshot.val();
+        if (role === "admin") {
+          window.location.href = "admin.html";
+        } else if (role === "user") {
+          window.location.href = "login.html";
+        } else {
+          document.getElementById("error").textContent = "❌ ไม่มีสิทธิ์เข้าถึงระบบ";
+        }
+      } else {
+        // ➕ ถ้ายังไม่มี role -> เพิ่มเป็น "user" อัตโนมัติ
+        roleRef.set("user").then(() => {
+          window.location.href = "login.html";
+        });
+      }
+    });
+  })
+  .catch((error) => {
+    document.getElementById("error").textContent = "❌ " + error.message;
+  });
+    
 </script>
 
 </body>
