@@ -321,12 +321,10 @@
 
     function sendCommand(cmd) {
   const user = firebase.auth().currentUser;
-  const uid = user ? user.uid : "guste";
   const timestamp = now.toLocaleString(),
       
   // บันทึก Activity Log
   db.ref("logs").push({
-    uid: uid,
     displayName: user.displayName || "guste",
     command: cmd,
     timestamp: timestamp
