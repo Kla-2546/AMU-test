@@ -120,6 +120,7 @@
 
   <button id="themeToggle">🌙 Dark Mode</button>
   
+  <div id="timer" style="font-size: 24px;top: 30px; left: 30px; font-weight: bold;">
   <div id="userStatus" style="position: fixed; top: 20px; left: 20px; font-weight: bold;"></div>
 
   <div class="value-cards">
@@ -191,6 +192,7 @@
     let updateInterval = 5000;
     let updateTimer = null;
     let stopTimer = null;
+    let secondsPassed = 0;
 
     const doLabels = [], doData = [], tempLabels = [], tempData = [];
 
@@ -349,6 +351,15 @@
           statusMsg.textContent = "Idle";
           stopUpdating();
           break;
+  function updateTimer() {
+    secondsPassed++;
+    const minutes = Math.floor(secondsPassed / 60);
+    const seconds = secondsPassed % 60;
+    const formattedTime = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+    document.getElementById("timer").textContent = `You have been here for ${formattedTime}`;
+  }
+
+  setInterval(updateTimer, 1000);
       }
     });
 
