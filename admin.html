@@ -171,15 +171,21 @@
  firebase.auth().onAuthStateChanged((user) => {
   const userStatusEl = document.getElementById("userStatus");
   if (user) {
-    if (user.isAnonymous) {
-      console.log("🔓 Logged in as Guest");
-      userStatusEl.textContent = "👤 Guest Mode";
-    } else {
-      console.log("✅ Logged in as:", user.email);
-      userStatusEl.textContent = "👤 Admin Mode";
-    }
+    const uid = user.uid;
+    firebase.database().ref(`users/${uid}/role`).once("value")
+      .then(snapshot => {
+        const role = snapshot.val();
+        if (role === "admin") {
+          userStatusEl.textContent = "👤 Admin";
+        } else {
+          userStatusEl.textContent = "👤 User";
+        }
+      })
+      .catch(err => {
+        console.error("Error getting role:", err);
+        userStatusEl.textContent = "❓ Unknown Role";
+      });
   } else {
-    console.warn("⛔ No user logged in, redirecting...");
     window.location.href = "login.html";
   }
 });
