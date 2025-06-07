@@ -121,10 +121,8 @@
   <button id="themeToggle">🌙 Dark Mode</button>
   
   <div id="userStatus" style="position: fixed; top: 20px; left: 20px; font-weight: bold;"></div>
-
-  <div id="timer" style="font-size: 24px;top: 30px; left: 20px; font-weight: bold;">
-  You have been here for 0:00
-  </div>
+  
+  <div id="timestamp" class="text-xs text-gray-400 mt-1"></div>
 
   <div class="value-cards">
     <div class="card">
@@ -354,7 +352,10 @@
           statusMsg.textContent = "Idle";
           stopUpdating();
           break;
-   function updateTimer() {
+      }
+    });
+
+  function updateTimer() {
       secondsPassed++;
       const minutes = Math.floor(secondsPassed / 60);
       const seconds = secondsPassed % 60;
@@ -363,8 +364,8 @@
     }
 
   setInterval(updateTimer, 1000);
-      }
-    });
+  updateTimestamp();
+    
 
     document.getElementById('themeToggle').addEventListener('click', () => {
       document.body.classList.toggle('dark');
