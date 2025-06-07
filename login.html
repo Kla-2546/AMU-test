@@ -327,7 +327,7 @@
   db.ref("logs").push({
     displayName: user.displayName || "guest",
     command: cmd,
-    timestamp: timestamp
+    time: timestamp
   });
 
   // ส่งคำสั่งไปที่ Firebase
