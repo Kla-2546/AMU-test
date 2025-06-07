@@ -320,7 +320,7 @@
     timestamp: timestamp
   });
 
-  // คำสั่งเดิม
+  // ส่งคำสั่งไปยัง Firebase
   db.ref("command").set(cmd)
     .then(() => {
       document.getElementById("statusMsg").textContent = "Working...";
@@ -329,29 +329,24 @@
       } else {
         stopUpdating();
       }
-      if (stopTimer) {
-        clearTimeout(stopTimer);
-        stopTimer = null;
-      }
+
+      // แสดงสถานะ 'Completed ✅' หลังจาก 15 วินาที
+      if (stopTimer) clearTimeout(stopTimer);
       stopTimer = setTimeout(() => {
-        db.ref("command").set("idle")
-          .then(() => {
-            document.getElementById("statusMsg").textContent = "Completed ✅";
-            if (cmd === 'all') stopUpdating();
-          });
-      }, 10000);
+        document.getElementById("statusMsg").textContent = "Completed ✅";
+      }, 15000);
+    })
+    .catch((err) => {
+      console.error("Error sending command:", err);
+      document.getElementById("statusMsg").textContent = "❌ Error sending command";
     });
 }
-        .catch(err => {
-          document.getElementById("statusMsg").textContent = "Error sending command!";
-          console.error(err);
-        });
-    }
+
     function updateSessionTimer() {
         secondsPassed++;
         const minutes = Math.floor(secondsPassed / 60);
         const seconds = secondsPassed % 60;
-        const formattedTime = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+        const formattedTme = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
         document.getElementById("timer").textContent = `🕓login time${formattedTime}minutes`;
     }
 
