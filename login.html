@@ -307,12 +307,23 @@
         updateTimer = null;
       }
     }
+    
+    function listenRealtimeData() {
+      firebase.database().ref("realtime").on("value", snapshot => {
+        const data = snapshot.val();
+        if (data) {
+          const now = new Date().toLocaleTimeString();
+          updateChart(now, data.DO, data.Temp);
+        }
+      });
+    }
+
 
     function sendCommand(cmd) {
   const user = firebase.auth().currentUser;
   const uid = user ? user.uid : "unknown";
-  const timestamp = new Date().toISOString();
-
+  const timestamp = new Date().toLocaleTimeString();
+      
   // บันทึก Activity Log
   db.ref("logs").push({
     uid: uid,
