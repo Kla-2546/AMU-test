@@ -395,7 +395,7 @@ function logActivity(userEmail, command, graphActive) {
   const timestamp = new Date().toISOString();
   const logEntry = {
     timestamp,
-    user: userEmail || "Guest",
+    user: userEmail || "admin",
     command,
     graphActive
   };
