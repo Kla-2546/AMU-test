@@ -309,39 +309,26 @@
     }
 
     function sendCommand(cmd) {
-  const user = firebase.auth().currentUser;
-  const uid = user ? user.uid : "unknown";
-  const timestamp = new Date().toISOString();
-
-  // บันทึก Activity Log
-  db.ref("logs").push({
-    uid: uid,
-    command: cmd,
-    timestamp: timestamp
-  });
-
-  // คำสั่งเดิม
-  db.ref("command").set(cmd)
-    .then(() => {
-      document.getElementById("statusMsg").textContent = "Working...";
-      if (cmd === 'all') {
-        startUpdating();
-      } else {
-        stopUpdating();
-      }
-      if (stopTimer) {
-        clearTimeout(stopTimer);
-        stopTimer = null;
-      }
-      stopTimer = setTimeout(() => {
-        db.ref("command").set("idle")
-          .then(() => {
-            document.getElementById("statusMsg").textContent = "Completed ✅";
-            if (cmd === 'all') stopUpdating();
-          });
-      }, 10000);
-    });
-}
+      db.ref("command").set(cmd)
+        .then(() => {
+          document.getElementById("statusMsg").textContent = "Working...";
+          if (cmd === 'all') {
+            startUpdating();
+          } else {
+            stopUpdating();
+          }
+          if (stopTimer) {
+            clearTimeout(stopTimer);
+            stopTimer = null;
+          }
+          stopTimer = setTimeout(() => {
+            db.ref("command").set("idle")
+              .then(() => {
+                document.getElementById("statusMsg").textContent = "Completed ✅";
+                if (cmd === 'all') stopUpdating();
+              });
+          }, 360000); // 6 นาที
+        })
         .catch(err => {
           document.getElementById("statusMsg").textContent = "Error sending command!";
           console.error(err);
