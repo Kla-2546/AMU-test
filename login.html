@@ -122,7 +122,7 @@
   
   <div id="userStatus" style="position: fixed; top: 20px; left: 20px; font-weight: bold;"></div>
 
-  <div id="timer" style="font-size: 24px;top: 30px; left: 30px; font-weight: bold;">
+  <div id="timer" style="font-size: 24px;top: 30px; left: 20px; font-weight: bold;">
   You have been here for 0:00
   </div>
 
@@ -354,13 +354,13 @@
           statusMsg.textContent = "Idle";
           stopUpdating();
           break;
-  function updateTimer() {
-    secondsPassed++;
-    const minutes = Math.floor(secondsPassed / 60);
-    const seconds = secondsPassed % 60;
-    const formattedTime = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
-    document.getElementById("timer").textContent = `You have been here for ${formattedTime}`;
-  }
+   function updateTimer() {
+      secondsPassed++;
+      const minutes = Math.floor(secondsPassed / 60);
+      const seconds = secondsPassed % 60;
+      const formattedTime = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+      document.getElementById("timer").textContent = `You have been here for ${formattedTime}`;
+    }
 
   setInterval(updateTimer, 1000);
       }
