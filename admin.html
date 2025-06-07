@@ -8,23 +8,79 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; background: #f4f6f8; color: #333; }
-    h1, h2 { color: #333; }
+    :root {
+      --bg: #f4f6f8;
+      --text: #333;
+      --card-bg: #fff;
+      --shadow: rgba(0,0,0,0.1);
+    }
+    body.dark {
+      --bg: #121212;
+      --text: #f1f1f1;
+      --card-bg: #1e1e1e;
+      --shadow: rgba(255,255,255,0.1);
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      margin: 0;
+      transition: background 0.3s, color 0.3s;
+    }
+    h1, h2 { color: var(--text); }
     canvas { width: 100% !important; height: 400px !important; margin-top: 40px; }
-    .card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px var(--shadow);
+      margin-bottom: 20px;
+    }
     .value-cards { display: flex; gap: 20px; flex-wrap: wrap; }
     .value-cards .card { flex: 1 1 200px; }
-    .label { font-size: 1.2em; color: #666; }
+    .label { font-size: 1.2em; color: #888; }
     .value { font-size: 2.5em; font-weight: bold; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background-color: #f0f0f0; }
-    button { padding: 10px 20px; margin: 10px 5px; border-radius: 8px; background: #007bff; color: white; border: none; cursor: pointer; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: var(--card-bg);
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th { background-color: #e0e0e0; }
+    button {
+      padding: 10px 15px;
+      margin: 8px 5px;
+      border-radius: 8px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.85; }
     #statusMsg { margin-top: 15px; font-weight: bold; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; }
+    .dark-toggle {
+      padding: 6px 14px;
+      background: #444;
+      border-radius: 20px;
+      color: white;
+      font-size: 0.9em;
+      cursor: pointer;
+      border: none;
+    }
   </style>
 </head>
 <body>
-  <h1>Admin & Sensor Dashboard</h1>
+  <div class="top-bar">
+    <h1>Admin & Sensor Dashboard</h1>
+    <button class="dark-toggle" onclick="toggleDark()">🌙/☀️</button>
+  </div>
   <p>ยินดีต้อนรับ <span id="userName"></span></p>
 
   <div class="value-cards">
@@ -48,7 +104,8 @@
   </div>
 
   <h2>Activity Log</h2>
-  <button onclick="exportCSV()">Export CSV</button>
+  <button onclick="exportCSV()">📥 Export CSV</button>
+  <button onclick="clearLogs()">🗑️ Clear Logs</button>
   <table id="logTable">
     <thead>
       <tr><th>เวลา</th><th>ชื่อผู้ใช้</th><th>คำสั่ง</th></tr>
@@ -58,15 +115,15 @@
 
   <script>
     const firebaseConfig = {
-  apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
-  authDomain: "amutestv03.firebaseapp.com",
-  databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "amutestv03",
-  storageBucket: "amutestv03.firebasestorage.app",
-  messagingSenderId: "879107687622",
-  appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
-  measurementId: "G-37ETDELEFH"
-};
+      apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
+      authDomain: "amutestv03.firebaseapp.com",
+      databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "amutestv03",
+      storageBucket: "amutestv03.appspot.com",
+      messagingSenderId: "879107687622",
+      appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
+      measurementId: "G-37ETDELEFH"
+    };
     firebase.initializeApp(firebaseConfig);
 
     let chart;
@@ -144,6 +201,15 @@
         });
     }
 
+    function clearLogs() {
+      if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบ Log ทั้งหมด?")) {
+        firebase.database().ref("logs").remove().then(() => {
+          alert("ลบ Log สำเร็จแล้ว");
+          loadActivityLog();
+        });
+      }
+    }
+
     function sendCommand(cmd) {
       const user = firebase.auth().currentUser;
       if (!user) return;
@@ -156,6 +222,10 @@
       firebase.database().ref("command").set(cmd);
       firebase.database().ref("logs").push(log);
       document.getElementById("statusMsg").innerText = `กำลังดำเนินการ: ${cmd.toUpperCase()}`;
+    }
+
+    function toggleDark() {
+      document.body.classList.toggle("dark");
     }
 
     firebase.auth().onAuthStateChanged(user => {
@@ -172,7 +242,9 @@
               window.location.href = "index.html";
             }
           });
-      } 
+      } else {
+        window.location.href = "index.html";
+      }
     });
   </script>
 </body>
