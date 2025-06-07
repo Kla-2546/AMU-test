@@ -160,7 +160,7 @@
 
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
-        firebase.database().ref(`users/${user.uid}/roles`).once("value")
+        firebase.database().ref(`roles/${user.uid}`).once("value")
           .then(snap => {
             if (snap.val() === "admin") {
               document.getElementById("userName").innerText = user.displayName || "(Admin)";
