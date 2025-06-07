@@ -1,51 +1,72 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Dashboard</title>
+  <meta charset="UTF-8" />
+  <title>Admin & Sensor Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; background: #f4f6f8; color: #333; }
     h1, h2 { color: #333; }
+    canvas { width: 100% !important; height: 400px !important; margin-top: 40px; }
+    .card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .value-cards { display: flex; gap: 20px; flex-wrap: wrap; }
+    .value-cards .card { flex: 1 1 200px; }
+    .label { font-size: 1.2em; color: #666; }
+    .value { font-size: 2.5em; font-weight: bold; margin-top: 10px; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #f0f0f0; }
-    canvas { margin-top: 40px; }
+    button { padding: 10px 20px; margin: 10px 5px; border-radius: 8px; background: #007bff; color: white; border: none; cursor: pointer; }
+    #statusMsg { margin-top: 15px; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>Admin Dashboard</h1>
+  <h1>Admin & Sensor Dashboard</h1>
   <p>ยินดีต้อนรับ <span id="userName"></span></p>
 
-  <h2>Real-time Graph (DO & Temperature)</h2>
+  <div class="value-cards">
+    <div class="card">
+      <div class="label">💧 Dissolved Oxygen (DO)</div>
+      <div class="value" id="doValue">-- μg/L</div>
+    </div>
+    <div class="card">
+      <div class="label">🌡️ Temperature</div>
+      <div class="value" id="tempValue">-- °C</div>
+    </div>
+  </div>
+
   <canvas id="chart"></canvas>
+  <div class="buttons">
+    <button onclick="sendCommand('all')">Run All</button>
+    <button onclick="sendCommand('wash')">Wash</button>
+    <button onclick="sendCommand('wipe')">Wipe</button>
+    <button onclick="sendCommand('reset')">Reset</button>
+    <span id="statusMsg">Idle</span>
+  </div>
 
   <h2>Activity Log</h2>
   <button onclick="exportCSV()">Export CSV</button>
   <table id="logTable">
     <thead>
-      <tr>
-        <th>เวลา</th>
-        <th>ชื่อผู้ใช้</th>
-        <th>คำสั่ง</th>
-      </tr>
+      <tr><th>เวลา</th><th>ชื่อผู้ใช้</th><th>คำสั่ง</th></tr>
     </thead>
     <tbody></tbody>
   </table>
 
   <script>
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-      projectId: "YOUR_PROJECT",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "SENDER_ID",
-      appId: "APP_ID"
-    };
+  apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
+  authDomain: "amutestv03.firebaseapp.com",
+  databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "amutestv03",
+  storageBucket: "amutestv03.firebasestorage.app",
+  messagingSenderId: "879107687622",
+  appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
+  measurementId: "G-37ETDELEFH"
+};
     firebase.initializeApp(firebaseConfig);
 
     let chart;
@@ -74,6 +95,8 @@
       chart.data.datasets[0].data.push(doVal);
       chart.data.datasets[1].data.push(tempVal);
       chart.update();
+      document.getElementById("doValue").innerText = `${doVal} μg/L`;
+      document.getElementById("tempValue").innerText = `${tempVal} °C`;
     }
 
     function listenRealtimeData() {
@@ -96,11 +119,7 @@
             const entries = Object.entries(log).sort((a, b) => b[0] - a[0]);
             entries.forEach(([key, data]) => {
               const row = document.createElement("tr");
-              row.innerHTML = `
-                <td>${data.time}</td>
-                <td>${data.displayName}</td>
-                <td>${data.command.toUpperCase()}</td>
-              `;
+              row.innerHTML = `<td>${data.time}</td><td>${data.displayName}</td><td>${data.command.toUpperCase()}</td>`;
               tableBody.appendChild(row);
             });
           }
@@ -112,12 +131,10 @@
         .then(snapshot => {
           const log = snapshot.val();
           if (!log) return alert("ไม่มีข้อมูล log");
-
           let csv = "เวลา,ชื่อผู้ใช้,คำสั่ง\n";
           Object.values(log).forEach(data => {
             csv += `${data.time},${data.displayName},${data.command.toUpperCase()}\n`;
           });
-
           const blob = new Blob([csv], { type: "text/csv" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -125,6 +142,20 @@
           a.download = "activity_log.csv";
           a.click();
         });
+    }
+
+    function sendCommand(cmd) {
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      const now = new Date();
+      const log = {
+        time: now.toLocaleString(),
+        displayName: user.displayName || "(Unknown)",
+        command: cmd
+      };
+      firebase.database().ref("command").set(cmd);
+      firebase.database().ref("activityLog").push(log);
+      document.getElementById("statusMsg").innerText = `กำลังดำเนินการ: ${cmd.toUpperCase()}`;
     }
 
     firebase.auth().onAuthStateChanged(user => {
