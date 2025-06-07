@@ -186,13 +186,13 @@
         userStatusEl.textContent = "❓ Unknown Role";
       });
   } else {
-    window.location.href = "index.html";
+    window.location.href = "/index.html";
   }
 });
 
       function logout() {
     firebase.auth().signOut().then(() => {
-      window.location.href = "index.html";
+      window.location.href = "/index.html";
     });
   }
   
@@ -313,14 +313,14 @@
   const uid = user ? user.uid : "unknown";
   const timestamp = new Date().toISOString();
 
-  // 🔐 บันทึก Activity Log
+  // บันทึก Activity Log
   db.ref("logs").push({
     uid: uid,
     command: cmd,
     timestamp: timestamp
   });
 
-  // 🚀 ส่งคำสั่งไปยัง ESP32
+  // คำสั่งเดิม
   db.ref("command").set(cmd)
     .then(() => {
       document.getElementById("statusMsg").textContent = "Working...";
@@ -329,19 +329,24 @@
       } else {
         stopUpdating();
       }
-
-      // ⏱️ ตั้งเวลาแสดงสถานะ "Completed ✅" หลัง 10 วินาที
-      if (stopTimer) clearTimeout(stopTimer);
+      if (stopTimer) {
+        clearTimeout(stopTimer);
+        stopTimer = null;
+      }
       stopTimer = setTimeout(() => {
-        document.getElementById("statusMsg").textContent = "Completed ✅";
-        stopUpdating(); // หยุดอัปเดตกราฟถ้าไม่ใช่ 'all'
+        db.ref("command").set("idle")
+          .then(() => {
+            document.getElementById("statusMsg").textContent = "Completed ✅";
+            if (cmd === 'all') stopUpdating();
+          });
       }, 10000);
-    })
-    .catch((err) => {
-      console.error("Error sending command:", err);
-      document.getElementById("statusMsg").textContent = "❌ Failed to send command";
     });
 }
+        .catch(err => {
+          document.getElementById("statusMsg").textContent = "Error sending command!";
+          console.error(err);
+        });
+    }
     function updateSessionTimer() {
         secondsPassed++;
         const minutes = Math.floor(secondsPassed / 60);
