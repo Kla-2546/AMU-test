@@ -106,7 +106,7 @@
     function guestLogin() {
       firebase.auth().signInAnonymously()
         .then(() => {
-          window.location.href = "user.html";
+          window.location.href = "login.html";
         })
         .catch(error => {
           console.error(error);
