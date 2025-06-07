@@ -150,7 +150,7 @@
       const now = new Date();
       const log = {
         time: now.toLocaleString(),
-        displayName: user.displayName || "(Unknown)",
+        displayName: user.displayName || "(admin)",
         command: cmd
       };
       firebase.database().ref("command").set(cmd);
