@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sensor Dashboard</title>
+  <title>Sensor Dashboard with Admin Log</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    /* ... สไตล์ตามเดิม ... */
+    /* (เดิมเหมือนที่มึงให้มา) */
     :root {
       --bg: #f4f6f8;
       --card-bg: #fff;
@@ -36,7 +36,123 @@
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
     }
-    /* ... เพิ่มเติมตามเดิม ... */
+    h1 {
+      margin-bottom: 30px;
+    }
+    .value-cards {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    .card {
+      background: var(--card-bg);
+      padding: 20px 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px var(--shadow);
+      min-width: 150px;
+      flex: 1 1 150px;
+      max-width: 250px;
+    }
+    .label {
+      font-size: 1.2em;
+      color: var(--subtext);
+    }
+    .value {
+      font-size: 2.5em;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .chart-container {
+      width: 90vw;
+      max-width: 900px;
+      margin: 0 auto 40px;
+    }
+    canvas {
+      width: 100% !important;
+      height: 400px !important;
+      background: var(--card-bg);
+      border-radius: 10px;
+      box-shadow: 0 2px 10px var(--shadow);
+      padding: 10px;
+    }
+    .buttons {
+      margin-bottom: 20px;
+    }
+    button {
+      font-size: 1em;
+      padding: 12px 25px;
+      margin: 8px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+      box-shadow: 0 4px 6px rgba(0, 123, 255, 0.4);
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #statusMsg {
+      font-size: 1.1em;
+      margin-top: 15px;
+      min-height: 1.5em;
+      font-weight: 600;
+    }
+    #themeToggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: 2px solid var(--btn-bg);
+      color: var(--btn-bg);
+      border-radius: 25px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: bold;
+      user-select: none;
+    }
+    #adminPanel {
+      max-width: 900px;
+      margin: 30px auto;
+      background: var(--card-bg);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 4px 12px var(--shadow);
+      color: var(--text);
+      text-align: left;
+    }
+    #adminPanel h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    #logTable {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #logTable th, #logTable td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      font-size: 0.9em;
+    }
+    #logTable th {
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+      position: sticky;
+      top: 0;
+    }
+    #logBody {
+      max-height: 300px;
+      overflow-y: auto;
+      display: block;
+    }
+    #logBody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
   </style>
 </head>
 <body>
@@ -45,7 +161,10 @@
   <button id="themeToggle">🌙 Dark Mode</button>
   
   <div id="userStatus" style="position: fixed; top: 20px; left: 20px; font-weight: bold;"></div>
-  <div style="position: fixed; top: 50px; left: 30px; font-weight: bold;" id="timer">🕓login time: 0:00 minutes</div>
+  
+  <div style="position: fixed; top: 50px; left: 30px; font-weight: bold;" id="timer">
+    🕓login time: 0:00 minutes
+  </div>
 
   <div class="value-cards">
     <div class="card">
@@ -61,6 +180,7 @@
   <div class="chart-container">
     <canvas id="doChart"></canvas>
   </div>
+
   <div class="chart-container">
     <canvas id="tempChart"></canvas>
   </div>
@@ -74,156 +194,308 @@
 
   <div id="statusMsg">Idle</div>
 
-<script>
-  // config Firebase ของคุณ
-  const firebaseConfig = {
-    apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
-    authDomain: "amutestv03.firebaseapp.com",
-    databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "amutestv03",
-    storageBucket: "amutestv03.firebasestorage.app",
-    messagingSenderId: "879107687622",
-    appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
-    measurementId: "G-37ETDELEFH"
-  };
-  firebase.initializeApp(firebaseConfig);
+  <!-- Admin Panel -->
+  <div id="adminPanel" style="display:none;">
+    <h2>🛠️ Admin Activity Log</h2>
+    <table id="logTable">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="logBody"></tbody>
+    </table>
+  </div>
 
-  const auth = firebase.auth();
-  const db = firebase.database();
-
-  // เก็บสถานะ user
-  let currentUser = null;
-
-  auth.onAuthStateChanged(user => {
-    if(user){
-      currentUser = user;
-      document.getElementById("userStatus").textContent = user.isAnonymous ? "👤 Guest Mode" : "👤 Admin Mode";
-    } else {
-      window.location.href = "login.html"; // เปลี่ยนถ้าคุณมีหน้าล็อกอิน
-    }
-  });
-
-  // กราฟและข้อมูล
-  const doLabels = [], doData = [], tempLabels = [], tempData = [];
-  const doChart = new Chart(document.getElementById('doChart').getContext('2d'), {
-    type: 'line',
-    data: { labels: doLabels, datasets: [{ label: 'DO (μg/L)', data: doData, borderColor: 'red', tension: 0.3, fill: false, pointRadius: 0 }] },
-    options: { animation: false, scales: { y: { min: 0, max: 12000 } } }
-  });
-  const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), {
-    type: 'line',
-    data: { labels: tempLabels, datasets: [{ label: 'Temperature (°C)', data: tempData, borderColor: 'blue', tension: 0.3, fill: false, pointRadius: 0 }] },
-    options: { animation: false, scales: { y: { min: 0, max: 100 } } }
-  });
-
-  let updateInterval = 5000;
-  let updateTimer = null;
-  let stopTimer = null;
-  let secondsPassed = 0;
-
-  function updateData() {
-    db.ref("sensor/do").once("value").then(snapshot => {
-      const val = snapshot.val();
-      if (val !== null) {
-        document.getElementById("doValue").textContent = `${val} μg/L`;
-        const now = new Date().toLocaleTimeString();
-        doLabels.push(now); doData.push(val);
-        if (doLabels.length > 20) { doLabels.shift(); doData.shift(); }
-        doChart.update();
-      }
-    });
-    db.ref("sensor/temp").once("value").then(snapshot => {
-      const val = snapshot.val();
-      if (val !== null) {
-        document.getElementById("tempValue").textContent = `${val} °C`;
-        const now = new Date().toLocaleTimeString();
-        tempLabels.push(now); tempData.push(val);
-        if (tempLabels.length > 20) { tempLabels.shift(); tempData.shift(); }
-        tempChart.update();
-      }
-    });
-  }
-
-  function startUpdating() {
-    if (!updateTimer) {
-      updateData();
-      updateTimer = setInterval(updateData, updateInterval);
-    }
-  }
-
-  function stopUpdating() {
-    if (updateTimer) {
-      clearInterval(updateTimer);
-      updateTimer = null;
-    }
-  }
-
-  // ฟังก์ชันส่งคำสั่ง + บันทึก Activity Log
-  function sendCommand(cmd) {
-    if (!currentUser) {
-      alert("Not logged in!");
-      return;
-    }
-    // บันทึก Activity Log ลง Firebase
-    const logRef = db.ref('activityLogs').push();
-    logRef.set({
-      userId: currentUser.uid,
-      email: currentUser.email || "Guest",
-      command: cmd,
-      timestamp: Date.now()
-    });
-
-    // ส่งคำสั่ง
-    db.ref("command").set(cmd)
-      .then(() => {
-        document.getElementById("statusMsg").textContent = "Working...";
-        if (cmd === 'all') startUpdating();
-        else stopUpdating();
-
-        if (stopTimer) clearTimeout(stopTimer);
-        stopTimer = setTimeout(() => {
-          db.ref("command").set("idle").then(() => {
-            document.getElementById("statusMsg").textContent = "Completed ✅";
-            if (cmd === 'all') stopUpdating();
-          });
-        }, 360000); // 6 นาที
-      })
-      .catch(err => {
-        document.getElementById("statusMsg").textContent = "Error!";
-        console.error(err);
-      });
-  }
-
-  // เวลา login
-  function updateSessionTimer() {
-    secondsPassed++;
-    const m = Math.floor(secondsPassed / 60);
-    const s = secondsPassed % 60;
-    document.getElementById("timer").textContent = `🕓login time: ${m}:${s < 10 ? '0' : ''}${s} minutes`;
-  }
-  setInterval(updateSessionTimer, 1000);
-
-  // ฟัง event คำสั่งเปลี่ยนสถานะ
-  db.ref("command").on("value", snapshot => {
-    const cmd = snapshot.val();
-    const msg = {
-      "all": "Running All...",
-      "wash": "Washing...",
-      "wipe": "Wiping...",
-      "reset": "Resetting...",
-      "idle": "Idle"
+  <script>
+    // Firebase config กูใช้ของมึงเดิม
+    const firebaseConfig = {
+      apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
+      authDomain: "amutestv03.firebaseapp.com",
+      databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "amutestv03",
+      storageBucket: "amutestv03.firebasestorage.app",
+      messagingSenderId: "879107687622",
+      appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
+      measurementId: "G-37ETDELEFH"
     };
-    document.getElementById("statusMsg").textContent = msg[cmd] || "Unknown Command";
-    if (cmd === "all") startUpdating(); else stopUpdating();
-  });
+    firebase.initializeApp(firebaseConfig);
 
-  // Theme toggle
-  document.getElementById("themeToggle").addEventListener("click", () => {
-    document.body.classList.toggle("dark");
-    const isDark = document.body.classList.contains("dark");
-    document.getElementById("themeToggle").textContent = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
-  });
-</script>
+    let currentUser = null;
+    let isAdmin = false;
 
+    firebase.auth().onAuthStateChanged((user) => {
+      const userStatusEl = document.getElementById("userStatus");
+      if (user) {
+        currentUser = user;
+        if (user.isAnonymous) {
+          userStatusEl.textContent = "👤 Guest Mode";
+          isAdmin = false;
+          document.getElementById("adminPanel").style.display = "none";
+        } else {
+          userStatusEl.textContent = `👤 Logged in as ${user.email}`;
+          isAdmin = user.email.includes("admin");
+          document.getElementById("adminPanel").style.display = isAdmin ? "block" : "none";
+          if(isAdmin) {
+            listenActivityLog();
+          }
+        }
+        startTimer();
+      } else {
+        currentUser = null;
+        userStatusEl.textContent = "Please Login";
+        isAdmin = false;
+        document.getElementById("adminPanel").style.display = "none";
+      }
+    });
+
+    // Login แบบง่ายสุด (Google popup)
+    function signIn() {
+      var provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider).catch(e => alert(e.message));
+    }
+    function signOut() {
+      firebase.auth().signOut();
+    }
+
+    // Login Prompt (ไม่ต้องกดเว็บ)
+    if (!firebase.auth().currentUser) {
+      signIn();
+    }
+
+    // Timer แสดงเวลา login
+    let loginTime = 0;
+    let timerInterval = null;
+    function startTimer() {
+      clearInterval(timerInterval);
+      loginTime = 0;
+      timerInterval = setInterval(() => {
+        loginTime++;
+        let minutes = Math.floor(loginTime / 60);
+        let seconds = loginTime % 60;
+        document.getElementById("timer").textContent = `🕓 login time: ${minutes}:${seconds.toString().padStart(2,"0")} minutes`;
+      }, 1000);
+    }
+
+    // เชื่อมต่อ Database
+    const db = firebase.database();
+    const doRef = db.ref("sensor/DO");
+    const tempRef = db.ref("sensor/Temperature");
+
+    const activityLogRef = db.ref("activityLog");
+
+    // ตัวแปรเก็บกราฟ
+    let doChart = null;
+    let tempChart = null;
+    let doData = [];
+    let tempData = [];
+    let timestamps = [];
+
+    // ช่วงเวลารับข้อมูล (ใน ms)
+    const fetchInterval = 2000;
+
+    // ฟังก์ชันโหลดข้อมูลกราฟ
+    function loadDataForCharts() {
+      doRef.limitToLast(50).on("value", (snapshot) => {
+        const val = snapshot.val() || {};
+        doData = [];
+        timestamps = [];
+        Object.entries(val).forEach(([key, data]) => {
+          timestamps.push(new Date(data.timestamp));
+          doData.push(data.value);
+        });
+        updateChart(doChart, timestamps, doData, "Dissolved Oxygen (μg/L)");
+        if(timestamps.length > 0) {
+          document.getElementById("doValue").textContent = doData[doData.length-1].toFixed(2) + " μg/L";
+        }
+      });
+      tempRef.limitToLast(50).on("value", (snapshot) => {
+        const val = snapshot.val() || {};
+        tempData = [];
+        Object.entries(val).forEach(([key, data]) => {
+          tempData.push(data.value);
+        });
+        updateChart(tempChart, timestamps, tempData, "Temperature (°C)");
+        if(tempData.length > 0) {
+          document.getElementById("tempValue").textContent = tempData[tempData.length-1].toFixed(2) + " °C";
+        }
+      });
+    }
+
+    // สร้างกราฟ
+    function createCharts() {
+      const ctxDO = document.getElementById("doChart").getContext("2d");
+      doChart = new Chart(ctxDO, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Dissolved Oxygen",
+            borderColor: "#007bff",
+            backgroundColor: "#007bff33",
+            data: [],
+            fill: true,
+            tension: 0.2,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          animation: false,
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                tooltipFormat: 'dd MMM yyyy HH:mm:ss',
+                unit: 'minute'
+              }
+            },
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      const ctxTemp = document.getElementById("tempChart").getContext("2d");
+      tempChart = new Chart(ctxTemp, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Temperature",
+            borderColor: "#f44336",
+            backgroundColor: "#f4433633",
+            data: [],
+            fill: true,
+            tension: 0.2,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          animation: false,
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                tooltipFormat: 'dd MMM yyyy HH:mm:ss',
+                unit: 'minute'
+              }
+            },
+            y: {
+              beginAtZero: false
+            }
+          }
+        }
+      });
+    }
+
+    // อัพเดตกราฟ
+    function updateChart(chart, labels, data, label) {
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = data;
+      chart.data.datasets[0].label = label;
+      chart.update();
+    }
+
+    // สถานะข้อความแสดงสถานะการทำงาน
+    const statusMsg = document.getElementById("statusMsg");
+
+    // ฟังก์ชันส่งคำสั่งไป ESP32 ผ่าน Firebase
+    function sendCommand(cmd) {
+      if(!currentUser) {
+        alert("Please login first");
+        return;
+      }
+      statusMsg.textContent = "Working...";
+      const cmdRef = db.ref("commands/current");
+      const timestamp = new Date().toISOString();
+      cmdRef.set({
+        command: cmd,
+        user: currentUser.email || "anonymous",
+        timestamp: timestamp
+      }).then(() => {
+        logActivity(cmd);
+      }).catch((e) => {
+        alert("Send command error: " + e.message);
+      });
+    }
+
+    // ฟังก์ชันบันทึก Activity Log
+    function logActivity(action) {
+      if(!currentUser) return;
+      const logEntry = {
+        action: action,
+        user: currentUser.email || "anonymous",
+        timestamp: new Date().toISOString()
+      };
+      activityLogRef.push(logEntry);
+    }
+
+    // ฟังเหตุการณ์ Activity Log สำหรับ Admin
+    function listenActivityLog() {
+      const logBody = document.getElementById("logBody");
+      activityLogRef.limitToLast(50).on("child_added", (snapshot) => {
+        const data = snapshot.val();
+        if(!data) return;
+        const tr = document.createElement("tr");
+        const time = new Date(data.timestamp).toLocaleString();
+        tr.innerHTML = `
+          <td>${time}</td>
+          <td>${data.user}</td>
+          <td>${data.action}</td>
+        `;
+        logBody.appendChild(tr);
+        // scroll ล่างสุด
+        logBody.scrollTop = logBody.scrollHeight;
+      });
+    }
+
+    // เช็คสถานะ command change และเปลี่ยนสถานะข้อความ + แสดง/ซ่อนกราฟ
+    const commandRef = db.ref("commands/current");
+    commandRef.on("value", (snapshot) => {
+      const val = snapshot.val();
+      if (!val) {
+        statusMsg.textContent = "Idle";
+        return;
+      }
+      if(val.command === "all") {
+        statusMsg.textContent = "Working... Showing Graphs";
+        createCharts();
+        loadDataForCharts();
+      } else if(val.command === "wash" || val.command === "wipe") {
+        statusMsg.textContent = `Working... (${val.command})`;
+        // ซ่อนกราฟตอนนี้
+        if(doChart) doChart.destroy();
+        if(tempChart) tempChart.destroy();
+        document.getElementById("doValue").textContent = "-- μg/L";
+        document.getElementById("tempValue").textContent = "-- °C";
+      } else if(val.command === "reset") {
+        statusMsg.textContent = "Resetting...";
+        if(doChart) doChart.destroy();
+        if(tempChart) tempChart.destroy();
+        document.getElementById("doValue").textContent = "-- μg/L";
+        document.getElementById("tempValue").textContent = "-- °C";
+      }
+      // รอคำสั่งเสร็จ ถ้า val.finished==true (สมมติ) หรืออย่างน้อย 60 วิ กูไม่ใส่รอ Firebase update เอง
+      // มึงต้องเขียนฝั่ง ESP32 อัพเดต finished:true
+    });
+
+    // Dark mode toggle
+    const themeToggle = document.getElementById("themeToggle");
+    themeToggle.onclick = () => {
+      document.body.classList.toggle("dark");
+      themeToggle.textContent = document.body.classList.contains("dark") ? "☀️ Light Mode" : "🌙 Dark Mode";
+    };
+
+    // เริ่ม
+    (function(){
+      createCharts();
+    })();
+
+  </script>
 </body>
 </html>
