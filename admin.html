@@ -177,19 +177,11 @@
         const role = snapshot.val();
         if (role === "admin") {
           userStatusEl.textContent = "👤 Admin";
-        } else {
-          userStatusEl.textContent = "👤 User";
-        }
+        } 
       })
-      .catch(err => {
-        console.error("Error getting role:", err);
-        userStatusEl.textContent = "❓ Unknown Role";
-      });
-  } else {
-    window.location.href = "index.html";
   }
 });
-
+    
       function logout() {
     firebase.auth().signOut().then(() => {
       window.location.href = "index.html";
