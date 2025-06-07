@@ -154,7 +154,7 @@
         command: cmd
       };
       firebase.database().ref("command").set(cmd);
-      firebase.database().ref("activityLog").push(log);
+      firebase.database().ref("logs").push(log);
       document.getElementById("statusMsg").innerText = `กำลังดำเนินการ: ${cmd.toUpperCase()}`;
     }
 
