@@ -111,7 +111,7 @@
 
     function loadActivityLog() {
       const tableBody = document.querySelector("#logTable tbody");
-      firebase.database().ref("activityLog").once("value")
+      firebase.database().ref("logs").once("value")
         .then(snapshot => {
           tableBody.innerHTML = "";
           const log = snapshot.val();
