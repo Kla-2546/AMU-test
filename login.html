@@ -119,6 +119,7 @@
   <h1>🌐 Real-Time Sensor Dashboard & Control</h1>
 
   <button id="themeToggle">🌙 Dark Mode</button>
+  
   <div id="userStatus" style="position: fixed; top: 20px; left: 20px; font-weight: bold;"></div>
 
   <div class="value-cards">
@@ -162,8 +163,8 @@
   appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
   measurementId: "G-37ETDELEFH"
 };
-    firebase.initializeApp(firebaseConfig);   
-    firebase.auth().onAuthStateChanged((user) => {
+ firebase.initializeApp(firebaseConfig);   
+ firebase.auth().onAuthStateChanged((user) => {
   const userStatusEl = document.getElementById("userStatus");
   if (user) {
     if (user.isAnonymous) {
