@@ -1,387 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Sensor Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <title>Login | AMU</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
   <style>
-    :root {
-      --bg: #f4f6f8;
-      --card-bg: #fff;
-      --text: #222;
-      --subtext: #666;
-      --shadow: rgba(0, 0, 0, 0.1);
-      --btn-bg: #007bff;
-      --btn-text: white;
-    }
-    body.dark {
-      --bg: #1e1e1e;
-      --card-bg: #2b2b2b;
-      --text: #eaeaea;
-      --subtext: #aaa;
-      --shadow: rgba(255, 255, 255, 0.05);
-      --btn-bg: #0d6efd;
-      --btn-text: #fff;
-    }
     body {
-      font-family: Arial, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #2196f3, #00bcd4);
+      height: 100vh;
       margin: 0;
-      padding: 20px;
-      text-align: center;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    h1 {
-      margin-bottom: 30px;
-    }
-    .value-cards {
       display: flex;
+      align-items: center;
       justify-content: center;
-      gap: 50px;
-      margin-bottom: 30px;
-      flex-wrap: wrap;
     }
-    .card {
-      background: var(--card-bg);
-      padding: 20px 40px;
-      border-radius: 15px;
-      box-shadow: 0 4px 12px var(--shadow);
-      min-width: 150px;
-      flex: 1 1 150px;
-      max-width: 250px;
-    }
-    .label {
-      font-size: 1.2em;
-      color: var(--subtext);
-    }
-    .value {
-      font-size: 2.5em;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    .chart-container {
-      width: 90vw;
-      max-width: 900px;
-      margin: 0 auto 40px;
-    }
-    canvas {
-      width: 100% !important;
-      height: 400px !important;
-      background: var(--card-bg);
+
+    .login-container {
+      background-color: #fff;
+      padding: 2rem;
       border-radius: 10px;
-      box-shadow: 0 2px 10px var(--shadow);
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    input {
+      width: 100%;
       padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
-    .buttons {
-      margin-bottom: 20px;
-    }
+
     button {
-      font-size: 1em;
-      padding: 12px 25px;
-      margin: 8px;
-      border-radius: 8px;
+      background-color: #2196f3;
+      color: white;
+      padding: 10px 20px;
       border: none;
+      border-radius: 6px;
+      margin-top: 10px;
       cursor: pointer;
-      background-color: var(--btn-bg);
-      color: var(--btn-text);
-      box-shadow: 0 4px 6px rgba(0, 123, 255, 0.4);
-      transition: background-color 0.3s;
+      font-size: 16px;
     }
+
     button:hover {
-      background-color: #0056b3;
+      background-color: #1976d2;
     }
-    #statusMsg {
-      font-size: 1.1em;
-      margin-top: 15px;
-      min-height: 1.5em;
-      font-weight: 600;
+
+    .error {
+      color: red;
+      margin: 10px 0;
     }
-    #themeToggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: transparent;
-      border: 2px solid var(--btn-bg);
-      color: var(--btn-bg);
-      border-radius: 25px;
-      padding: 8px 16px;
-      cursor: pointer;
-      font-weight: bold;
-      user-select: none;
+
+    hr {
+      margin: 20px 0;
     }
   </style>
 </head>
 <body>
-  <h1>🌐 Real-Time Sensor Dashboard & Control</h1>
 
-  <button id="themeToggle">🌙 Dark Mode</button>
-  
-  <div id="userStatus" style="position: fixed; top: 20px; left: 20px; font-weight: bold;"></div>
-  
-  <div style="position: fixed; top: 50px; left: 30px; font-weight: bold;" id="timer">
-  🕓login time: 0:00 minutes
-  </div>
+<div class="login-container">
+  <h2>เข้าสู่ระบบ</h2>
+  <div class="error" id="error"></div>
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="password" placeholder="Password" />
+  <button onclick="login()">เข้าสู่ระบบ</button>
+  <hr>
+  <button onclick="guestLogin()">เข้าสู่ระบบแบบผู้เยี่ยมชม (Guest)</button>
+</div>
 
-  <div class="value-cards">
-    <div class="card">
-      <div class="label">💧 Dissolved Oxygen (DO)</div>
-      <div class="value" id="doValue">-- μg/L</div>
-    </div>
-    <div class="card">
-      <div class="label">🌡️ Temperature</div>
-      <div class="value" id="tempValue">-- °C</div>
-    </div>
-  </div>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
+    authDomain: "amutestv03.firebaseapp.com",
+    databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "amutestv03",
+    storageBucket: "amutestv03.appspot.com",
+    messagingSenderId: "879107687622",
+    appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
+    measurementId: "G-37ETDELEFH"
+  };
 
-  <div class="chart-container">
-    <canvas id="doChart"></canvas>
-  </div>
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
 
-  <div class="chart-container">
-    <canvas id="tempChart"></canvas>
-  </div>
+  function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-  <div class="buttons">
-    <button onclick="sendCommand('all')">Run All</button>
-    <button onclick="sendCommand('wash')">Wash</button>
-    <button onclick="sendCommand('wipe')">Wipe</button>
-    <button onclick="sendCommand('reset')">Reset</button>
-  </div>
+    auth.signInWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        const uid = userCredential.user.uid;
 
-  <div id="statusMsg">Idle</div>
-
-  <script>
-    
-    // 🔥 แทนที่ค่านี้ด้วย Firebase Config ของคุณเอง
-    const firebaseConfig = {
-  apiKey: "AIzaSyCahNGt0dOFJCmUw5MrmulZG1VsKIpt-F0",
-  authDomain: "amutestv03.firebaseapp.com",
-  databaseURL: "https://amutestv03-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "amutestv03",
-  storageBucket: "amutestv03.firebasestorage.app",
-  messagingSenderId: "879107687622",
-  appId: "1:879107687622:web:ad0227a11bf8aa21ff43c7",
-  measurementId: "G-37ETDELEFH"
-};
- firebase.initializeApp(firebaseConfig);   
- firebase.auth().onAuthStateChanged((user) => {
-  const userStatusEl = document.getElementById("userStatus");
-  if (user) {
-    const uid = user.uid;
-    firebase.database().ref(`users/${uid}/role`).once("value")
-      .then(snapshot => {
-        const role = snapshot.val();
-        if (role === "admin") {
-          userStatusEl.textContent = "👤 Admin";
-        } else {
-          userStatusEl.textContent = "👤 User";
-        }
+        // ตรวจสอบ role
+        db.ref("roles/" + uid).once("value")
+          .then(snapshot => {
+            const role = snapshot.val();
+            if (role === "admin") {
+              window.location.href = "admin.html";
+            } else if (role === "user") {
+              window.location.href = "login.html";
+            } else {
+              document.getElementById("error").textContent = "❌ ไม่มีสิทธิ์เข้าถึงระบบ";
+            }
+          });
       })
-      .catch(err => {
-        console.error("Error getting role:", err);
-        userStatusEl.textContent = "❓ Unknown Role";
+      .catch((error) => {
+        document.getElementById("error").textContent = "❌ " + error.message;
       });
-  } else {
-    window.location.href = "index.html";
   }
-});
 
-
-      function logout() {
-    firebase.auth().signOut().then(() => {
-      window.location.href = "index.html";
-    });
+  function guestLogin() {
+    auth.signInAnonymously()
+      .then(() => {
+        window.location.href = "login.html";
+      })
+      .catch((error) => {
+        document.getElementById("error").textContent = "❌ " + error.message;
+      });
   }
-  
-    const db = firebase.database();
+</script>
 
-    let updateInterval = 5000;
-    let updateTimer = null;
-    let stopTimer = null;
-    let secondsPassed = 0;
-
-    const doLabels = [], doData = [], tempLabels = [], tempData = [];
-
-    const doCtx = document.getElementById('doChart').getContext('2d');
-    const tempCtx = document.getElementById('tempChart').getContext('2d');
-
-    const doChart = new Chart(doCtx, {
-      type: 'line',
-      data: {
-        labels: doLabels,
-        datasets: [{
-          label: 'DO (μg/L)',
-          data: doData,
-          borderColor: 'rgba(255, 99, 132, 1)',
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          fill: false,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        animation: { duration: 0 },
-        scales: {
-          y: {
-            min: 0,
-            max: 12000,
-            ticks: {
-              stepSize: 500,
-              callback: val => val.toLocaleString()
-            },
-            grid: { color: 'rgba(180,180,180,0.2)' }
-          }
-        },
-        plugins: { legend: { display: true } }
-      }
-    });
-
-    const tempChart = new Chart(tempCtx, {
-      type: 'line',
-      data: {
-        labels: tempLabels,
-        datasets: [{
-          label: 'Temperature (°C)',
-          data: tempData,
-          borderColor: 'rgba(0, 123, 255, 1)',
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          fill: false,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        animation: { duration: 0 },
-        scales: {
-          y: {
-            min: 0,
-            max: 100,
-            ticks: { stepSize: 10 },
-            grid: { color: 'rgba(180,180,180,0.2)' }
-          }
-        },
-        plugins: { legend: { display: true } }
-      }
-    });
-
-    function updateData() {
-      db.ref("sensor/do").once("value").then(snapshot => {
-        const val = snapshot.val();
-        if (val !== null) {
-          document.getElementById("doValue").textContent = `${val} μg/L`;
-          const now = new Date().toLocaleTimeString();
-          doLabels.push(now);
-          doData.push(val);
-          if (doLabels.length > 20) { doLabels.shift(); doData.shift(); }
-          doChart.update('none');
-        }
-      });
-      db.ref("sensor/temp").once("value").then(snapshot => {
-        const val = snapshot.val();
-        if (val !== null) {
-          document.getElementById("tempValue").textContent = `${val} °C`;
-          const now = new Date().toLocaleTimeString();
-          tempLabels.push(now);
-          tempData.push(val);
-          if (tempLabels.length > 20) { tempLabels.shift(); tempData.shift(); }
-          tempChart.update('none');
-        }
-      });
-    }
-
-    function startUpdating() {
-      if (!updateTimer) {
-        updateData();
-        updateTimer = setInterval(updateData, updateInterval);
-      }
-    }
-
-    function stopUpdating() {
-      if (updateTimer) {
-        clearInterval(updateTimer);
-        updateTimer = null;
-      }
-    }
-
-    function sendCommand(cmd) {
-      db.ref("command").set(cmd)
-        .then(() => {
-          document.getElementById("statusMsg").textContent = "Working...";
-          if (cmd === 'all') {
-            startUpdating();
-          } else {
-            stopUpdating();
-          }
-          if (stopTimer) {
-            clearTimeout(stopTimer);
-            stopTimer = null;
-          }
-          stopTimer = setTimeout(() => {
-            db.ref("command").set("idle")
-              .then(() => {
-                document.getElementById("statusMsg").textContent = "Completed ✅";
-                if (cmd === 'all') stopUpdating();
-              });
-          }, 360000); // 6 นาที
-        })
-        .catch(err => {
-          document.getElementById("statusMsg").textContent = "Error sending command!";
-          console.error(err);
-        });
-    }
-    function updateSessionTimer() {
-        secondsPassed++;
-        const minutes = Math.floor(secondsPassed / 60);
-        const seconds = secondsPassed % 60;
-        const formattedTime = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
-        document.getElementById("timer").textContent = `🕓login time${formattedTime}minutes`;
-    }
-
-    setInterval(updateSessionTimer, 1000);
-    updateSessionTimer();
-
-
-    
-    db.ref("command").on("value", snapshot => {
-      const cmd = snapshot.val();
-      const statusMsg = document.getElementById("statusMsg");
-      switch (cmd) {
-        case "all":
-          statusMsg.textContent = "Running All...";
-          startUpdating();
-          break;
-        case "wash":
-          statusMsg.textContent = "Washing...";
-          stopUpdating();
-          break;
-        case "wipe":
-          statusMsg.textContent = "Wiping...";
-          stopUpdating();
-          break;
-        case "reset":
-          statusMsg.textContent = "Resetting...";
-          stopUpdating();
-          break;
-        case "idle":
-        default:
-          statusMsg.textContent = "Idle";
-          stopUpdating();
-          break;
-      }
-    });
-    
-
-    document.getElementById('themeToggle').addEventListener('click', () => {
-      document.body.classList.toggle('dark');
-      themeToggle.textContent = document.body.classList.contains('dark') ? '☀️ Light Mode' : '🌙 Dark Mode';
-      
-    });
-  </script>
 </body>
 </html>
