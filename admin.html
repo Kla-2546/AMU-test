@@ -94,7 +94,15 @@
     </div>
   </div>
 
-  <canvas id="chart"></canvas>
+<div class="chart-container">
+    <canvas id="doChart"></canvas>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="tempChart"></canvas>
+  </div>
+
+  
   <div class="buttons">
     <button onclick="sendCommand('all')">Run All</button>
     <button onclick="sendCommand('wash')">Wash</button>
@@ -126,35 +134,97 @@
     };
     firebase.initializeApp(firebaseConfig);
 
-    let chart;
-    function drawChart() {
-      const ctx = document.getElementById("chart").getContext("2d");
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [
-            { label: 'DO', data: [], borderColor: 'blue', fill: false },
-            { label: 'Temperature', data: [], borderColor: 'red', fill: false }
-          ]
+ const doLabels = [], doData = [], tempLabels = [], tempData = [];
+
+    const doCtx = document.getElementById('doChart').getContext('2d');
+    const tempCtx = document.getElementById('tempChart').getContext('2d');
+
+    const doChart = new Chart(doCtx, {
+      type: 'line',
+      data: {
+        labels: doLabels,
+        datasets: [{
+          label: 'DO (μg/L)',
+          data: doData,
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          fill: false,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 0 },
+        scales: {
+          y: {
+            min: 0,
+            max: 12000,
+            ticks: {
+              stepSize: 500,
+              callback: val => val.toLocaleString()
+            },
+            grid: { color: 'rgba(180,180,180,0.2)' }
+          }
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        plugins: { legend: { display: true } }
+      }
+    });
+
+    const tempChart = new Chart(tempCtx, {
+      type: 'line',
+      data: {
+        labels: tempLabels,
+        datasets: [{
+          label: 'Temperature (°C)',
+          data: tempData,
+          borderColor: 'rgba(0, 123, 255, 1)',
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          fill: false,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 0 },
+        scales: {
+          y: {
+            min: 0,
+            max: 100,
+            ticks: { stepSize: 10 },
+            grid: { color: 'rgba(180,180,180,0.2)' }
+          }
+        },
+        plugins: { legend: { display: true } }
+      }
+    });
+
+    function updateData() {
+      db.ref("sensor/do").once("value").then(snapshot => {
+        const val = snapshot.val();
+        if (val !== null) {
+          document.getElementById("doValue").textContent = `${val} μg/L`;
+          const now = new Date().toLocaleTimeString();
+          doLabels.push(now);
+          doData.push(val);
+          if (doLabels.length > 20) { doLabels.shift(); doData.shift(); }
+          doChart.update('none');
+        }
+      });
+      db.ref("sensor/temp").once("value").then(snapshot => {
+        const val = snapshot.val();
+        if (val !== null) {
+          document.getElementById("tempValue").textContent = `${val} °C`;
+          const now = new Date().toLocaleTimeString();
+          tempLabels.push(now);
+          tempData.push(val);
+          if (tempLabels.length > 20) { tempLabels.shift(); tempData.shift(); }
+          tempChart.update('none');
+        }
       });
     }
 
-    function updateChart(time, doVal, tempVal) {
-      if (chart.data.labels.length > 50) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-        chart.data.datasets[1].data.shift();
-      }
-      chart.data.labels.push(time);
-      chart.data.datasets[0].data.push(doVal);
-      chart.data.datasets[1].data.push(tempVal);
-      chart.update();
-      document.getElementById("doValue").innerText = `${doVal} μg/L`;
-      document.getElementById("tempValue").innerText = `${tempVal} °C`;
-    }
 
     function listenRealtimeData() {
       firebase.database().ref("realtime").on("value", snapshot => {
