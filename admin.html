@@ -131,7 +131,7 @@
         .then(snapshot => {
           const log = snapshot.val();
           if (!log) return alert("ไม่มีข้อมูล log");
-          let csv = "เวลา,ชื่อผู้ใช้,คำสั่ง\n";
+          let csv = "วัน,เวลา,ชื่อผู้ใช้,คำสั่ง\n";
           Object.values(log).forEach(data => {
             csv += `${data.time},${data.displayName},${data.command.toUpperCase()}\n`;
           });
