@@ -186,13 +186,13 @@
         userStatusEl.textContent = "❓ Unknown Role";
       });
   } else {
-    window.location.href = "/index.html";
+    window.location.href = "index.html";
   }
 });
 
       function logout() {
     firebase.auth().signOut().then(() => {
-      window.location.href = "/index.html";
+      window.location.href = "index.html";
     });
   }
   
@@ -309,31 +309,39 @@
     }
 
     function sendCommand(cmd) {
-      db.ref("command").set(cmd)
-        .then(() => {
-          document.getElementById("statusMsg").textContent = "Working...";
-          if (cmd === 'all') {
-            startUpdating();
-          } else {
-            stopUpdating();
-          }
-          if (stopTimer) {
-            clearTimeout(stopTimer);
-            stopTimer = null;
-          }
-          stopTimer = setTimeout(() => {
-            db.ref("command").set("idle")
-              .then(() => {
-                document.getElementById("statusMsg").textContent = "Completed ✅";
-                if (cmd === 'all') stopUpdating();
-              });
-          }, 360000); // 6 นาที
-        })
-        .catch(err => {
-          document.getElementById("statusMsg").textContent = "Error sending command!";
-          console.error(err);
-        });
-    }
+  const user = firebase.auth().currentUser;
+  const uid = user ? user.uid : "unknown";
+  const timestamp = new Date().toISOString();
+
+  // 🔐 บันทึก Activity Log
+  db.ref("activityLog").push({
+    uid: uid,
+    command: cmd,
+    timestamp: timestamp
+  });
+
+  // 🚀 ส่งคำสั่งไปยัง ESP32
+  db.ref("command").set(cmd)
+    .then(() => {
+      document.getElementById("statusMsg").textContent = "Working...";
+      if (cmd === 'all') {
+        startUpdating();
+      } else {
+        stopUpdating();
+      }
+
+      // ⏱️ ตั้งเวลาแสดงสถานะ "Completed ✅" หลัง 10 วินาที
+      if (stopTimer) clearTimeout(stopTimer);
+      stopTimer = setTimeout(() => {
+        document.getElementById("statusMsg").textContent = "Completed ✅";
+        stopUpdating(); // หยุดอัปเดตกราฟถ้าไม่ใช่ 'all'
+      }, 10000);
+    })
+    .catch((err) => {
+      console.error("Error sending command:", err);
+      document.getElementById("statusMsg").textContent = "❌ Failed to send command";
+    });
+}
     function updateSessionTimer() {
         secondsPassed++;
         const minutes = Math.floor(secondsPassed / 60);
