@@ -130,6 +130,8 @@
 
     let chart;
     const doData = [], tempData = [], labels = [];
+    let updateTimer = null;
+    const updateInterval = 5000;
 
     function drawChart() {
       const ctx = document.getElementById("chart").getContext("2d");
@@ -138,22 +140,20 @@
         data: {
           labels: labels,
           datasets: [
-            { label: 'DO (μg/L)', data: doData, borderColor: 'blue', fill: false },
-            { label: 'Temp (°C)', data: tempData, borderColor: 'red', fill: false }
+            { label: 'DO (μg/L)', data: doData, borderColor: 'blue', fill: false, tension: 0.3, pointRadius: 0 },
+            { label: 'Temp (°C)', data: tempData, borderColor: 'red', fill: false, tension: 0.3, pointRadius: 0 }
           ]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false
+          animation: false
         }
       });
     }
 
     function updateChart(time, doVal, tempVal) {
       if (labels.length > 50) {
-        labels.shift();
-        doData.shift();
-        tempData.shift();
+        labels.shift(); doData.shift(); tempData.shift();
       }
       labels.push(time);
       doData.push(doVal);
@@ -163,12 +163,56 @@
       document.getElementById("tempValue").innerText = `${tempVal} °C`;
     }
 
-    function listenRealtimeData() {
-      db.ref("realtime").on("value", snapshot => {
-        const data = snapshot.val();
-        if (data) {
+    function updateData() {
+      db.ref("sensor/do").once("value").then(snapshot => {
+        const doVal = snapshot.val();
+        db.ref("sensor/temp").once("value").then(snap => {
+          const tempVal = snap.val();
           const now = new Date().toLocaleTimeString();
-          updateChart(now, data.DO, data.Temp);
+          updateChart(now, doVal, tempVal);
+        });
+      });
+    }
+
+    function startUpdating() {
+      if (!updateTimer) {
+        updateData();
+        updateTimer = setInterval(updateData, updateInterval);
+      }
+    }
+
+    function stopUpdating() {
+      if (updateTimer) {
+        clearInterval(updateTimer);
+        updateTimer = null;
+      }
+    }
+
+    function sendCommand(cmd) {
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      const now = new Date();
+      const log = {
+        time: now.toLocaleString(),
+        displayName: user.displayName || "(admin)",
+        command: cmd
+      };
+      db.ref("command").set(cmd);
+      db.ref("logs").push(log);
+      document.getElementById("statusMsg").innerText = `กำลังดำเนินการ: ${cmd.toUpperCase()}`;
+
+      if (cmd === "all") {
+        startUpdating();
+      } else {
+        stopUpdating();
+      }
+
+      const statusRef = db.ref("status");
+      statusRef.on("value", snapshot => {
+        if (snapshot.val() === "done") {
+          document.getElementById("statusMsg").innerText = "✅ เสร็จแล้ว";
+          stopUpdating();
+          statusRef.off();
         }
       });
     }
@@ -215,20 +259,6 @@
       }
     }
 
-    function sendCommand(cmd) {
-      const user = firebase.auth().currentUser;
-      if (!user) return;
-      const now = new Date();
-      const log = {
-        time: now.toLocaleString(),
-        displayName: user.displayName || "(admin)",
-        command: cmd
-      };
-      db.ref("command").set(cmd);
-      db.ref("logs").push(log);
-      document.getElementById("statusMsg").innerText = `กำลังดำเนินการ: ${cmd.toUpperCase()}`;
-    }
-
     function toggleDark() {
       document.body.classList.toggle("dark");
     }
@@ -239,7 +269,7 @@
           if (snap.val() === "admin") {
             document.getElementById("userName").innerText = user.displayName || "(Admin)";
             drawChart();
-            listenRealtimeData();
+            startUpdating();
             loadActivityLog();
           } else {
             alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
