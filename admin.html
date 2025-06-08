@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -96,6 +95,7 @@
   </div>
 
   <canvas id="chart"></canvas>
+
   <div class="buttons">
     <button onclick="sendCommand('all')">Run All</button>
     <button onclick="sendCommand('wash')">Wash</button>
@@ -126,65 +126,45 @@
       measurementId: "G-37ETDELEFH"
     };
     firebase.initializeApp(firebaseConfig);
-    
     const db = firebase.database();
-    function updateData() {
-      db.ref("sensor/do").once("value").then(snapshot => {
-        const val = snapshot.val();
-        if (val !== null) {
-          document.getElementById("doValue").textContent = `${val} μg/L`;
-          const now = new Date().toLocaleTimeString();
-          doLabels.push(now);
-          doData.push(val);
-          if (doLabels.length > 20) { doLabels.shift(); doData.shift(); }
-          doChart.update('none');
-        }
-      });
-      db.ref("sensor/temp").once("value").then(snapshot => {
-        const val = snapshot.val();
-        if (val !== null) {
-          document.getElementById("tempValue").textContent = `${val} °C`;
-          const now = new Date().toLocaleTimeString();
-          tempLabels.push(now);
-          tempData.push(val);
-          if (tempLabels.length > 20) { tempLabels.shift(); tempData.shift(); }
-          tempChart.update('none');
-        }
-      });
-    }
 
     let chart;
+    const doData = [], tempData = [], labels = [];
+
     function drawChart() {
       const ctx = document.getElementById("chart").getContext("2d");
       chart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: [],
+          labels: labels,
           datasets: [
-            { label: 'DO', data: [], borderColor: 'blue', fill: false },
-            { label: 'Temperature', data: [], borderColor: 'red', fill: false }
+            { label: 'DO (μg/L)', data: doData, borderColor: 'blue', fill: false },
+            { label: 'Temp (°C)', data: tempData, borderColor: 'red', fill: false }
           ]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
       });
     }
 
     function updateChart(time, doVal, tempVal) {
-      if (chart.data.labels.length > 50) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-        chart.data.datasets[1].data.shift();
+      if (labels.length > 50) {
+        labels.shift();
+        doData.shift();
+        tempData.shift();
       }
-      chart.data.labels.push(time);
-      chart.data.datasets[0].data.push(doVal);
-      chart.data.datasets[1].data.push(tempVal);
+      labels.push(time);
+      doData.push(doVal);
+      tempData.push(tempVal);
       chart.update();
       document.getElementById("doValue").innerText = `${doVal} μg/L`;
       document.getElementById("tempValue").innerText = `${tempVal} °C`;
     }
 
     function listenRealtimeData() {
-      firebase.database().ref("realtime").on("value", snapshot => {
+      db.ref("realtime").on("value", snapshot => {
         const data = snapshot.val();
         if (data) {
           const now = new Date().toLocaleTimeString();
@@ -195,42 +175,40 @@
 
     function loadActivityLog() {
       const tableBody = document.querySelector("#logTable tbody");
-      firebase.database().ref("logs").once("value")
-        .then(snapshot => {
-          tableBody.innerHTML = "";
-          const log = snapshot.val();
-          if (log) {
-            const entries = Object.entries(log).sort((a, b) => b[0] - a[0]);
-            entries.forEach(([key, data]) => {
-              const row = document.createElement("tr");
-              row.innerHTML = `<td>${data.time}</td><td>${data.displayName}</td><td>${data.command.toUpperCase()}</td>`;
-              tableBody.appendChild(row);
-            });
-          }
-        });
+      db.ref("logs").once("value").then(snapshot => {
+        tableBody.innerHTML = "";
+        const logs = snapshot.val();
+        if (logs) {
+          const entries = Object.entries(logs).sort((a, b) => b[0] - a[0]);
+          entries.forEach(([key, data]) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `<td>${data.time}</td><td>${data.displayName}</td><td>${data.command.toUpperCase()}</td>`;
+            tableBody.appendChild(row);
+          });
+        }
+      });
     }
 
     function exportCSV() {
-      firebase.database().ref("logs").once("value")
-        .then(snapshot => {
-          const log = snapshot.val();
-          if (!log) return alert("ไม่มีข้อมูล log");
-          let csv = "วัน,เวลา,ชื่อผู้ใช้,คำสั่ง\n";
-          Object.values(log).forEach(data => {
-            csv += `${data.time},${data.displayName},${data.command.toUpperCase()}\n`;
-          });
-          const blob = new Blob([csv], { type: "text/csv" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "activity_log.csv";
-          a.click();
+      db.ref("logs").once("value").then(snapshot => {
+        const logs = snapshot.val();
+        if (!logs) return alert("ไม่มีข้อมูล log");
+        let csv = "วัน,เวลา,ชื่อผู้ใช้,คำสั่ง\n";
+        Object.values(logs).forEach(data => {
+          csv += `${data.time},${data.displayName},${data.command.toUpperCase()}\n`;
         });
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "activity_log.csv";
+        a.click();
+      });
     }
 
     function clearLogs() {
       if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบ Log ทั้งหมด?")) {
-        firebase.database().ref("logs").remove().then(() => {
+        db.ref("logs").remove().then(() => {
           alert("ลบ Log สำเร็จแล้ว");
           loadActivityLog();
         });
@@ -246,8 +224,8 @@
         displayName: user.displayName || "(admin)",
         command: cmd
       };
-      firebase.database().ref("command").set(cmd);
-      firebase.database().ref("logs").push(log);
+      db.ref("command").set(cmd);
+      db.ref("logs").push(log);
       document.getElementById("statusMsg").innerText = `กำลังดำเนินการ: ${cmd.toUpperCase()}`;
     }
 
@@ -257,18 +235,17 @@
 
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
-        firebase.database().ref(`roles/${user.uid}`).once("value")
-          .then(snap => {
-            if (snap.val() === "admin") {
-              document.getElementById("userName").innerText = user.displayName || "(Admin)";
-              drawChart();
-              listenRealtimeData();
-              loadActivityLog();
-            } else {
-              alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-              window.location.href = "index.html";
-            }
-          });
+        db.ref(`roles/${user.uid}`).once("value").then(snap => {
+          if (snap.val() === "admin") {
+            document.getElementById("userName").innerText = user.displayName || "(Admin)";
+            drawChart();
+            listenRealtimeData();
+            loadActivityLog();
+          } else {
+            alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
+            window.location.href = "index.html";
+          }
+        });
       } else {
         window.location.href = "index.html";
       }
